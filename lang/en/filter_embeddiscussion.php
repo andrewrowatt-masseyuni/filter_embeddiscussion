@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * English language pack for Embeddiscussion
+ * English language pack for Embeddiscussion.
  *
  * @package    filter_embeddiscussion
  * @category   string
@@ -25,5 +25,78 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['filtername'] = 'Embeddiscussion';
-$string['privacy:metadata'] = 'The Embeddiscussion plugin doesn\'t store any personal data.';
+$string['adminpanel'] = 'Discussion settings';
+$string['allposts'] = 'All posts';
+$string['anonymousposts'] = 'Anonymous posts';
+$string['anonymousposts_desc'] = 'Students will be assigned a handle (e.g., Curious Ibis).';
+$string['befirsttocomment'] = 'Be the first to comment.';
+$string['cancel'] = 'Cancel';
+$string['comment'] = 'Comment';
+$string['comments'] = '{$a} Comments';
+$string['delete'] = 'Delete';
+$string['deleteconfirm'] = 'Delete this post?';
+$string['deleted_post'] = 'Post deleted.';
+$string['edit'] = 'Edit';
+$string['edited'] = 'edited';
+$string['embeddiscussion:createpost'] = 'Post in an embedded discussion';
+$string['embeddiscussion:deleteanypost'] = 'Delete any post in an embedded discussion';
+$string['embeddiscussion:deleteownpost'] = 'Delete own posts in an embedded discussion';
+$string['embeddiscussion:editownpost'] = 'Edit own posts in an embedded discussion';
+$string['embeddiscussion:manageposts'] = 'Manage (delete) any post in an embedded discussion';
+$string['embeddiscussion:managethread'] = 'Manage thread settings for an embedded discussion';
+$string['embeddiscussion:managethreads'] = 'View and manage all embedded discussion threads in a course';
+$string['error_emptypost'] = 'Post content cannot be empty.';
+$string['error_invalidthread'] = 'Invalid thread.';
+$string['error_nopermission'] = 'You do not have permission to perform that action.';
+$string['error_threadlocked'] = 'This thread is locked.';
+$string['event:post_created'] = 'Embedded discussion post created';
+$string['event:post_deleted'] = 'Embedded discussion post deleted';
+$string['event:post_edited'] = 'Embedded discussion post edited';
+$string['event:post_voted'] = 'Embedded discussion post voted on';
+$string['event:thread_initialised'] = 'Embedded discussion thread initialised';
+$string['event:thread_settings_changed'] = 'Embedded discussion settings changed';
+$string['filtername'] = 'Embedded discussion';
+$string['jointhediscussion'] = 'Join the discussion…';
+$string['lockthread'] = 'Lock thread';
+$string['lockthread_desc'] = 'Prevents new posts and edits.';
+$string['newest'] = 'Newest';
+$string['nocomments'] = '0 Comments';
+$string['nothreads'] = 'No embedded discussions in this course.';
+$string['oldest'] = 'Oldest';
+$string['onecomment'] = '1 Comment';
+$string['post'] = 'Post';
+$string['privacy:metadata'] = 'The Embedded discussion plugin stores user posts, votes and anonymous handles.';
+$string['privacy:metadata:handle'] = 'The anonymous handle assigned to a student in a thread.';
+$string['privacy:metadata:handle:handleindex'] = 'The handle index in the master list.';
+$string['privacy:metadata:handle:userid'] = 'The user assigned the handle.';
+$string['privacy:metadata:post'] = 'Posts made by users in embedded discussion threads.';
+$string['privacy:metadata:post:content'] = 'The HTML content of the post.';
+$string['privacy:metadata:post:timecreated'] = 'When the post was created.';
+$string['privacy:metadata:post:timemodified'] = 'When the post was last edited.';
+$string['privacy:metadata:post:userid'] = 'The user who created the post.';
+$string['privacy:metadata:thread'] = 'Embedded discussion threads.';
+$string['privacy:metadata:thread:userid'] = 'The user who triggered initialisation.';
+$string['privacy:metadata:vote'] = 'Up/down votes on posts.';
+$string['privacy:metadata:vote:timecreated'] = 'When the vote was cast.';
+$string['privacy:metadata:vote:userid'] = 'The voting user.';
+$string['privacy:metadata:vote:vote'] = '+1 or -1.';
+$string['rateandcomment'] = 'Rate and comment';
+$string['reply'] = 'Reply';
+$string['replytopost'] = 'Reply to post';
+$string['save'] = 'Save';
+$string['setting_adjectives'] = 'Adjective (word one)';
+$string['setting_adjectives_default'] = 'Bright,Calm,Keen,Bold,Clear';
+$string['setting_adjectives_desc'] = 'Comma-separated list of adjectives used as the first word of an anonymous handle.';
+$string['setting_animals'] = 'Animal (word two)';
+$string['setting_animals_default'] = 'Ibis,Kestrel,Heron,Lynx,Merlin';
+$string['setting_animals_desc'] = 'Comma-separated list of animals used as the second word of an anonymous handle.';
+$string['settings_general'] = 'Anonymous handles';
+$string['startthediscussion'] = 'Start the discussion…';
+$string['threadcontext'] = 'Location';
+$string['threadlastpost'] = 'Last post';
+$string['threadlocked'] = 'This discussion is locked. New posts and edits are disabled.';
+$string['threadname'] = 'Thread';
+$string['threadnotinitialised'] = 'Loading discussion…';
+$string['threadposts'] = 'Posts';
+$string['threadsincourse'] = 'Embedded discussions';
+$string['viewthread'] = 'View';

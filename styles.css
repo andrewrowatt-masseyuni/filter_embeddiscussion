@@ -1,0 +1,277 @@
+/* Embedded discussion filter styles. Modern but understated. */
+
+.filter-embeddiscussion {
+    margin: 1.5rem 0;
+}
+
+/* --- Skeleton placeholder shown before JS hydrates ----------------------- */
+.embeddisc-skeleton {
+    padding: 1rem 0;
+}
+.embeddisc-skeleton-line {
+    height: 0.75rem;
+    background: linear-gradient(90deg, #eee 0%, #f6f6f6 50%, #eee 100%);
+    background-size: 200% 100%;
+    animation: embeddisc-skeleton-pulse 1.4s linear infinite;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+.embeddisc-skeleton-title {
+    width: 30%;
+    height: 1rem;
+}
+.embeddisc-skeleton-line + .embeddisc-skeleton-line {
+    width: 90%;
+}
+
+@keyframes embeddisc-skeleton-pulse {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* --- Discussion shell ---------------------------------------------------- */
+.embeddisc {
+    font-size: 0.95rem;
+    color: #333;
+}
+.embeddisc-header {
+    margin-bottom: 1rem;
+}
+.embeddisc-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+.embeddisc-divider {
+    border: 0;
+    border-top: 1px solid #d8d8d8;
+    margin: 0.5rem 0 0;
+}
+
+/* --- Composer ------------------------------------------------------------ */
+.embeddisc-composer {
+    margin: 1rem 0 0.5rem;
+}
+.embeddisc-composer-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.embeddisc-composer-avatar {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--brand-primary, #0d3d6b);
+    color: #fff;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.embeddisc-composer-trigger {
+    flex: 1 1 auto;
+    text-align: left;
+    padding: 0.6rem 1rem;
+    border: 1px solid #cfd2d6;
+    border-radius: 8px;
+    background: #fff;
+    color: #888;
+    cursor: text;
+    transition: border-color 0.15s ease;
+}
+.embeddisc-composer-trigger:focus,
+.embeddisc-composer-trigger:hover {
+    border-color: var(--brand-primary, #0d3d6b);
+    outline: none;
+}
+.embeddisc-composer-expanded {
+    border: 1px solid #cfd2d6;
+    border-radius: 8px;
+    padding: 0.5rem;
+    background: #fff;
+}
+.embeddisc-composer-expanded .ql-toolbar.ql-snow,
+.embeddisc-composer-expanded .ql-container.ql-snow {
+    border: none;
+}
+.embeddisc-composer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem 0.5rem;
+}
+.embeddisc-composer-actions .btn-primary {
+    background: var(--brand-primary, #0d3d6b);
+    border-color: var(--brand-primary, #0d3d6b);
+    border-radius: 999px;
+    padding: 0.35rem 1.2rem;
+}
+
+/* --- Sort buttons -------------------------------------------------------- */
+.embeddisc-sort {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin: 0.5rem 0 0.75rem;
+}
+.embeddisc-sort-btn {
+    background: none;
+    border: none;
+    color: #666;
+    padding: 0;
+    font-size: 0.9rem;
+}
+.embeddisc-sort-btn.embeddisc-sort-active {
+    color: var(--brand-primary, #0d3d6b);
+    font-weight: 600;
+    border-bottom: 2px solid var(--brand-primary, #0d3d6b);
+    padding-bottom: 0.15rem;
+}
+
+/* --- Posts -------------------------------------------------------------- */
+.embeddisc-empty {
+    text-align: center;
+    color: #888;
+    padding: 1rem 0 1.5rem;
+}
+.embeddisc-post {
+    display: flex;
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+.embeddisc-post[data-indent="1"] {
+    margin-left: 1.5rem;
+}
+.embeddisc-post[data-indent="2"] {
+    margin-left: 3rem;
+}
+.embeddisc-post[data-indent="3"] {
+    margin-left: 4.5rem;
+}
+.embeddisc-post-avatar {
+    flex: 0 0 auto;
+}
+.embeddisc-post-avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.embeddisc-post-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.embeddisc-post-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.embeddisc-post-author {
+    color: var(--brand-primary, #0d3d6b);
+    font-weight: 600;
+    text-decoration: none;
+}
+.embeddisc-post-author:hover {
+    text-decoration: underline;
+}
+.embeddisc-post-role {
+    font-size: 0.8rem;
+    color: #666;
+    background: #f0f1f3;
+    border-radius: 4px;
+    padding: 0.05rem 0.4rem;
+}
+.embeddisc-post-time {
+    font-size: 0.8rem;
+    color: #888;
+    margin: 0.1rem 0 0.5rem;
+}
+.embeddisc-post-time-relative {
+    cursor: help;
+    border-bottom: 1px dotted #aaa;
+}
+.embeddisc-post-edited {
+    margin-left: 0.5rem;
+    font-style: italic;
+}
+.embeddisc-post-content {
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+.embeddisc-post-content p:last-child {
+    margin-bottom: 0;
+}
+.embeddisc-post-deleted {
+    opacity: 0.6;
+}
+
+/* --- Action buttons under each post -------------------------------------- */
+.embeddisc-post-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-top: 0.4rem;
+    color: #666;
+    font-size: 0.85rem;
+}
+.embeddisc-action {
+    background: none;
+    border: none;
+    color: inherit;
+    padding: 0.15rem 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.embeddisc-action:hover {
+    color: var(--brand-primary, #0d3d6b);
+}
+.embeddisc-vote.active {
+    color: var(--brand-primary, #0d3d6b);
+}
+.embeddisc-action-delete:hover {
+    color: #b03030;
+}
+
+/* --- Inline reply / edit composer --------------------------------------- */
+.embeddisc-inline-composer {
+    margin: 0.5rem 0;
+    border: 1px solid #cfd2d6;
+    border-radius: 8px;
+    padding: 0.25rem;
+    background: #fff;
+}
+.embeddisc-inline-composer .ql-toolbar.ql-snow,
+.embeddisc-inline-composer .ql-container.ql-snow {
+    border: none;
+}
+
+/* --- Admin panel --------------------------------------------------------- */
+.embeddisc-admin {
+    border: 1px solid #e3e3e3;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+    background: #fafbfc;
+}
+.embeddisc-admin-toggle {
+    color: var(--brand-primary, #0d3d6b);
+    font-weight: 600;
+    text-decoration: none;
+}
+.embeddisc-admin-body {
+    padding-top: 0.5rem;
+}
+
+/* --- Threads list page --------------------------------------------------- */
+.embeddisc-threads-table th {
+    background: #f6f7f9;
+}

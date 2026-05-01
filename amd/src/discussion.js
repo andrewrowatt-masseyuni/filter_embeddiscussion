@@ -1,0 +1,463 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Embedded discussion bootstrapper / controller.
+ *
+ * @module     filter_embeddiscussion/discussion
+ * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+import Ajax from 'core/ajax';
+import Templates from 'core/templates';
+import Notification from 'core/notification';
+import {get_string as getString} from 'core/str';
+import {loadQuill, makeEditor} from 'filter_embeddiscussion/editor';
+import {startTicker, format} from 'filter_embeddiscussion/timeago';
+
+const SEL_ROOT = '[data-region="filter-embeddiscussion"]';
+const MAX_VISUAL_INDENT = 3;
+
+const initialised = new WeakSet();
+
+/**
+ * Public entry point. Bootstraps every embedded discussion placeholder on the page.
+ */
+export const init = () => {
+    document.querySelectorAll(SEL_ROOT).forEach(el => {
+        if (initialised.has(el)) {
+            return;
+        }
+        initialised.add(el);
+        const d = new Discussion(el);
+        d.load();
+    });
+    startTicker();
+};
+
+class Discussion {
+    constructor(root) {
+        this.root = root;
+        this.threadName = root.dataset.threadName;
+        this.contextid = parseInt(root.dataset.contextid, 10);
+        this.thread = null; // server payload.
+        this.sortMode = 'oldest';
+        this.composerEditor = null;
+        this.activeReply = null; // {parentId, container, editor}.
+        this.activeEdit = null; // {postId, container, editor, originalContent}.
+    }
+
+    load() {
+        Ajax.call([{
+            methodname: 'filter_embeddiscussion_get_thread',
+            args: {
+                name: this.threadName,
+                contextid: this.contextid,
+            },
+        }])[0].then(data => this.render(data))
+            .catch(Notification.exception);
+    }
+
+    async render(data) {
+        this.thread = data;
+        const html = await Templates.renderForPromise('filter_embeddiscussion/discussion', data);
+        await Templates.replaceNodeContents(this.root, html.html, html.js);
+        await this.renderPosts();
+        this.bind();
+    }
+
+    /**
+     * Render the post list into [data-region="posts"] respecting current sort.
+     */
+    async renderPosts() {
+        const container = this.root.querySelector('[data-region="posts"]');
+        const empty = this.root.querySelector('[data-region="empty"]');
+        const countEl = this.root.querySelector('[data-region="post-count"]');
+        if (!container) {
+            return;
+        }
+        container.innerHTML = '';
+
+        const posts = this.thread.posts.map(p => ({
+            ...p,
+            indent: 0,
+            votes_my_up: p.votes_my === 1,
+            votes_my_down: p.votes_my === -1,
+        }));
+
+        // Sort top-level by chosen mode; replies always chronological.
+        const tops = posts.filter(p => p.parentid === 0);
+        tops.sort((a, b) => this.sortMode === 'newest'
+            ? b.timecreated - a.timecreated
+            : a.timecreated - b.timecreated);
+
+        for (const top of tops) {
+            await this.appendTree(container, top, 0, posts);
+        }
+
+        if (empty) {
+            empty.classList.toggle('d-none', this.thread.postcount > 0);
+        }
+
+        if (countEl) {
+            const key = this.thread.postcount === 1 ? 'onecomment' : 'comments';
+            countEl.textContent = await getString(key, 'filter_embeddiscussion', this.thread.postcount);
+        }
+    }
+
+    /**
+     * Recursively append a post and its replies into a container.
+     *
+     * @param {HTMLElement} container
+     * @param {object} post
+     * @param {number} depth visual indent depth (0..MAX_VISUAL_INDENT)
+     * @param {Array<object>} all flat list of all posts in the thread
+     */
+    async appendTree(container, post, depth, all) {
+        const ctx = {...post, indent: Math.min(depth, MAX_VISUAL_INDENT)};
+        const {html, js} = await Templates.renderForPromise('filter_embeddiscussion/post', ctx);
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        const node = tmp.firstElementChild;
+        container.appendChild(node);
+        Templates.runTemplateJS(js);
+
+        const repliesContainer = node.querySelector('[data-region="replies"]');
+        const children = all.filter(p => p.parentid === post.id)
+            .sort((a, b) => a.timecreated - b.timecreated);
+        for (const child of children) {
+            await this.appendTree(repliesContainer, child, depth + 1, all);
+        }
+    }
+
+    /**
+     * Wire up delegated event handlers.
+     */
+    bind() {
+        this.root.addEventListener('click', this.onClick.bind(this));
+
+        // Admin toggles bind separately (change events).
+        this.root.querySelectorAll('[data-action="toggle-anonymous"], [data-action="toggle-locked"]')
+            .forEach(input => input.addEventListener('change', this.onAdminChange.bind(this)));
+    }
+
+    onClick(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target || !this.root.contains(target)) {
+            return;
+        }
+        const action = target.dataset.action;
+        switch (action) {
+            case 'open-composer': return this.openComposer();
+            case 'cancel-compose': return this.cancelComposer();
+            case 'submit-compose': return this.submitComposer();
+            case 'sort': return this.changeSort(target.dataset.sort);
+            case 'reply': return this.openReply(target);
+            case 'edit': return this.openEdit(target);
+            case 'delete': return this.confirmDelete(target);
+            case 'vote': return this.vote(target);
+            case 'toggle-admin': return this.toggleAdmin(target);
+            default:
+        }
+    }
+
+    async openComposer() {
+        const collapsed = this.root.querySelector('[data-region="composer-collapsed"]');
+        const expanded = this.root.querySelector('[data-region="composer-expanded"]');
+        if (!collapsed || !expanded) {
+            return;
+        }
+        collapsed.classList.add('d-none');
+        expanded.classList.remove('d-none');
+        if (!this.composerEditor) {
+            await loadQuill();
+            this.composerEditor = makeEditor(expanded.querySelector('[data-region="editor"]'));
+        }
+        this.composerEditor.focus();
+    }
+
+    cancelComposer() {
+        const collapsed = this.root.querySelector('[data-region="composer-collapsed"]');
+        const expanded = this.root.querySelector('[data-region="composer-expanded"]');
+        if (this.composerEditor) {
+            this.composerEditor.setText('');
+        }
+        expanded.classList.add('d-none');
+        collapsed.classList.remove('d-none');
+    }
+
+    async submitComposer() {
+        if (!this.composerEditor) {
+            return;
+        }
+        const html = this.composerEditor.root.innerHTML.trim();
+        if (!html || html === '<p><br></p>') {
+            return;
+        }
+        try {
+            const data = await Ajax.call([{
+                methodname: 'filter_embeddiscussion_create_post',
+                args: {
+                    threadid: this.thread.threadid,
+                    contextid: this.contextid,
+                    parentid: 0,
+                    content: html,
+                },
+            }])[0];
+            this.thread = data;
+            this.composerEditor.setText('');
+            this.cancelComposer();
+            await this.renderPosts();
+        } catch (e) {
+            Notification.exception(e);
+        }
+    }
+
+    async changeSort(sort) {
+        this.sortMode = sort;
+        this.root.querySelectorAll('[data-action="sort"]').forEach(btn => {
+            btn.classList.toggle('embeddisc-sort-active', btn.dataset.sort === sort);
+        });
+        await this.renderPosts();
+    }
+
+    async openReply(button) {
+        const postEl = button.closest('[data-region="post"]');
+        if (!postEl) {
+            return;
+        }
+        const parentId = parseInt(postEl.dataset.postid, 10);
+        const repliesEl = postEl.querySelector('[data-region="replies"]');
+        if (!repliesEl) {
+            return;
+        }
+        if (this.activeReply) {
+            this.closeReply();
+        }
+        await loadQuill();
+        const cancelStr = await getString('cancel', 'filter_embeddiscussion');
+        const postStr = await getString('post', 'filter_embeddiscussion');
+        const wrap = document.createElement('div');
+        wrap.className = 'embeddisc-inline-composer';
+        wrap.innerHTML =
+            '<div class="embeddisc-editor" data-region="reply-editor"></div>' +
+            '<div class="embeddisc-composer-actions">' +
+            `<button type="button" class="btn btn-link" data-action="cancel-reply">${cancelStr}</button>` +
+            `<button type="button" class="btn btn-primary" data-action="submit-reply">${postStr}</button>` +
+            '</div>';
+        repliesEl.prepend(wrap);
+        const editor = makeEditor(wrap.querySelector('[data-region="reply-editor"]'));
+        editor.focus();
+        this.activeReply = {parentId, container: wrap, editor};
+        wrap.querySelector('[data-action="cancel-reply"]').addEventListener('click', () => this.closeReply());
+        wrap.querySelector('[data-action="submit-reply"]').addEventListener('click', () => this.submitReply());
+    }
+
+    closeReply() {
+        if (!this.activeReply) {
+            return;
+        }
+        this.activeReply.container.remove();
+        this.activeReply = null;
+    }
+
+    async submitReply() {
+        if (!this.activeReply) {
+            return;
+        }
+        const html = this.activeReply.editor.root.innerHTML.trim();
+        if (!html || html === '<p><br></p>') {
+            return;
+        }
+        try {
+            const data = await Ajax.call([{
+                methodname: 'filter_embeddiscussion_create_post',
+                args: {
+                    threadid: this.thread.threadid,
+                    contextid: this.contextid,
+                    parentid: this.activeReply.parentId,
+                    content: html,
+                },
+            }])[0];
+            this.thread = data;
+            this.closeReply();
+            await this.renderPosts();
+        } catch (e) {
+            Notification.exception(e);
+        }
+    }
+
+    async openEdit(button) {
+        const postEl = button.closest('[data-region="post"]');
+        if (!postEl) {
+            return;
+        }
+        const postId = parseInt(postEl.dataset.postid, 10);
+        const contentEl = postEl.querySelector('[data-region="post-content"]');
+        if (!contentEl) {
+            return;
+        }
+        if (this.activeEdit) {
+            this.closeEdit();
+        }
+        await loadQuill();
+        const cancelStr = await getString('cancel', 'filter_embeddiscussion');
+        const saveStr = await getString('save', 'filter_embeddiscussion');
+        const original = contentEl.innerHTML;
+        const wrap = document.createElement('div');
+        wrap.className = 'embeddisc-inline-composer';
+        wrap.innerHTML =
+            '<div class="embeddisc-editor" data-region="edit-editor"></div>' +
+            '<div class="embeddisc-composer-actions">' +
+            `<button type="button" class="btn btn-link" data-action="cancel-edit">${cancelStr}</button>` +
+            `<button type="button" class="btn btn-primary" data-action="submit-edit">${saveStr}</button>` +
+            '</div>';
+        contentEl.replaceWith(wrap);
+        const editor = makeEditor(wrap.querySelector('[data-region="edit-editor"]'));
+        editor.root.innerHTML = original;
+        editor.focus();
+        this.activeEdit = {postId, container: wrap, editor, originalContent: original};
+        wrap.querySelector('[data-action="cancel-edit"]').addEventListener('click', () => this.closeEdit());
+        wrap.querySelector('[data-action="submit-edit"]').addEventListener('click', () => this.submitEdit());
+    }
+
+    closeEdit() {
+        if (!this.activeEdit) {
+            return;
+        }
+        const restore = document.createElement('div');
+        restore.className = 'embeddisc-post-content';
+        restore.dataset.region = 'post-content';
+        restore.innerHTML = this.activeEdit.originalContent;
+        this.activeEdit.container.replaceWith(restore);
+        this.activeEdit = null;
+    }
+
+    async submitEdit() {
+        if (!this.activeEdit) {
+            return;
+        }
+        const html = this.activeEdit.editor.root.innerHTML.trim();
+        if (!html || html === '<p><br></p>') {
+            return;
+        }
+        try {
+            const data = await Ajax.call([{
+                methodname: 'filter_embeddiscussion_edit_post',
+                args: {
+                    postid: this.activeEdit.postId,
+                    contextid: this.contextid,
+                    content: html,
+                },
+            }])[0];
+            this.thread = data;
+            this.activeEdit = null;
+            await this.renderPosts();
+        } catch (e) {
+            Notification.exception(e);
+        }
+    }
+
+    async confirmDelete(button) {
+        const postEl = button.closest('[data-region="post"]');
+        if (!postEl) {
+            return;
+        }
+        const postId = parseInt(postEl.dataset.postid, 10);
+        try {
+            await Notification.deleteCancelPromise(
+                await getString('delete', 'filter_embeddiscussion'),
+                await getString('deleteconfirm', 'filter_embeddiscussion')
+            );
+        } catch {
+            return;
+        }
+        try {
+            const data = await Ajax.call([{
+                methodname: 'filter_embeddiscussion_delete_post',
+                args: {postid: postId, contextid: this.contextid},
+            }])[0];
+            this.thread = data;
+            await this.renderPosts();
+        } catch (e) {
+            Notification.exception(e);
+        }
+    }
+
+    async vote(button) {
+        const postEl = button.closest('[data-region="post"]');
+        if (!postEl) {
+            return;
+        }
+        const postId = parseInt(postEl.dataset.postid, 10);
+        const direction = parseInt(button.dataset.direction, 10);
+        // Find current vote in local thread state to allow toggle off.
+        const post = this.thread.posts.find(p => p.id === postId);
+        const finalDir = (post && post.votes_my === direction) ? 0 : direction;
+        try {
+            const result = await Ajax.call([{
+                methodname: 'filter_embeddiscussion_vote_post',
+                args: {postid: postId, contextid: this.contextid, direction: finalDir},
+            }])[0];
+            // Update local model and the post DOM in place.
+            if (post) {
+                post.votes_up = result.votes_up;
+                post.votes_down = result.votes_down;
+                post.votes_my = result.votes_my;
+            }
+            postEl.querySelector('[data-region="votes-up"]').textContent = result.votes_up;
+            postEl.querySelector('[data-region="votes-down"]').textContent = result.votes_down;
+            const upBtn = postEl.querySelector('[data-action="vote"][data-direction="1"]');
+            const downBtn = postEl.querySelector('[data-action="vote"][data-direction="-1"]');
+            upBtn.classList.toggle('active', result.votes_my === 1);
+            downBtn.classList.toggle('active', result.votes_my === -1);
+        } catch (e) {
+            Notification.exception(e);
+        }
+    }
+
+    toggleAdmin(button) {
+        const body = this.root.querySelector('.embeddisc-admin-body');
+        if (!body) {
+            return;
+        }
+        const isOpen = body.classList.toggle('show');
+        button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
+    async onAdminChange() {
+        const anon = this.root.querySelector('[data-action="toggle-anonymous"]');
+        const lock = this.root.querySelector('[data-action="toggle-locked"]');
+        try {
+            const data = await Ajax.call([{
+                methodname: 'filter_embeddiscussion_save_settings',
+                args: {
+                    threadid: this.thread.threadid,
+                    contextid: this.contextid,
+                    anonymous: anon ? !!anon.checked : false,
+                    locked: lock ? !!lock.checked : false,
+                },
+            }])[0];
+            this.thread = data;
+            await this.renderPosts();
+        } catch (e) {
+            Notification.exception(e);
+        }
+    }
+}
+
+// Re-export format so tests can import it.
+export {format};

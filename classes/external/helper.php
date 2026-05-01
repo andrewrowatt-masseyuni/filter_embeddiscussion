@@ -1,0 +1,80 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+namespace filter_embeddiscussion\external;
+
+use core_external\external_single_structure;
+use core_external\external_multiple_structure;
+use core_external\external_value;
+
+/**
+ * Shared external_description helpers.
+ *
+ * @package    filter_embeddiscussion
+ * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class helper {
+    /**
+     * Description of a single post entry.
+     *
+     * @return external_single_structure
+     */
+    public static function post_structure(): external_single_structure {
+        return new external_single_structure([
+            'id' => new external_value(PARAM_INT, 'Post id'),
+            'parentid' => new external_value(PARAM_INT, 'Parent post id (0 for top-level)'),
+            'content' => new external_value(PARAM_RAW, 'Sanitised HTML content'),
+            'deleted' => new external_value(PARAM_BOOL, 'Whether the post is deleted'),
+            'edited' => new external_value(PARAM_BOOL, 'Whether the post has been edited'),
+            'timecreated' => new external_value(PARAM_INT, 'Unix timestamp when created'),
+            'timecreatediso' => new external_value(PARAM_TEXT, 'Localised date/time'),
+            'timecreatedrelative' => new external_value(PARAM_TEXT, 'Relative time string'),
+            'authorname' => new external_value(PARAM_TEXT, 'Display name of author'),
+            'authorhandle' => new external_value(PARAM_TEXT, 'Anonymous handle, if any'),
+            'authorrole' => new external_value(PARAM_TEXT, 'Author role label, if non-student'),
+            'isanonymous' => new external_value(PARAM_BOOL, 'True if anonymised for viewer'),
+            'profileurl' => new external_value(PARAM_URL, 'Author profile URL', VALUE_OPTIONAL),
+            'avatar' => new external_value(PARAM_RAW, 'Avatar HTML (img tag)'),
+            'votes_up' => new external_value(PARAM_INT, 'Up vote count'),
+            'votes_down' => new external_value(PARAM_INT, 'Down vote count'),
+            'votes_my' => new external_value(PARAM_INT, "Viewer's own vote: -1, 0 or 1"),
+            'canedit' => new external_value(PARAM_BOOL, 'Viewer can edit this post'),
+            'candelete' => new external_value(PARAM_BOOL, 'Viewer can delete this post'),
+            'canreply' => new external_value(PARAM_BOOL, 'Viewer can reply'),
+        ]);
+    }
+
+    /**
+     * Description of a thread payload.
+     *
+     * @return external_single_structure
+     */
+    public static function thread_structure(): external_single_structure {
+        return new external_single_structure([
+            'threadid' => new external_value(PARAM_INT, 'Thread id'),
+            'name' => new external_value(PARAM_TEXT, 'Thread name'),
+            'anonymous' => new external_value(PARAM_BOOL, 'Anonymous mode enabled'),
+            'locked' => new external_value(PARAM_BOOL, 'Locked'),
+            'canpost' => new external_value(PARAM_BOOL, 'Viewer can post'),
+            'canmanagethread' => new external_value(PARAM_BOOL, 'Viewer can manage thread settings'),
+            'canmanageposts' => new external_value(PARAM_BOOL, 'Viewer can moderate posts'),
+            'postcount' => new external_value(PARAM_INT, 'Number of posts'),
+            'currentuserid' => new external_value(PARAM_INT, 'Current user id'),
+            'posts' => new external_multiple_structure(self::post_structure()),
+        ]);
+    }
+}

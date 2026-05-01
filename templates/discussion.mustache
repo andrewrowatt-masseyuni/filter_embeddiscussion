@@ -1,0 +1,90 @@
+{{!
+    @template filter_embeddiscussion/discussion
+
+    Top-level discussion shell rendered into the filter placeholder.
+
+    Context variables required:
+      threadid (int)
+      name (string)
+      anonymous (bool)
+      locked (bool)
+      canpost (bool)
+      canmanagethread (bool)
+      canmanageposts (bool)
+      postcount (int)
+      currentuserid (int)
+
+    Example:
+      { "threadid": 7, "name": "Demo", "anonymous": false, "locked": false,
+        "canpost": true, "canmanagethread": false, "canmanageposts": false,
+        "postcount": 0, "currentuserid": 2 }
+}}
+<div class="embeddisc" data-region="embeddisc-root" data-threadid="{{threadid}}" data-anonymous="{{#anonymous}}1{{/anonymous}}{{^anonymous}}0{{/anonymous}}" data-locked="{{#locked}}1{{/locked}}{{^locked}}0{{/locked}}">
+  {{#canmanagethread}}
+    <div class="embeddisc-admin" data-region="admin-panel">
+      <button type="button" class="btn btn-link p-0 embeddisc-admin-toggle" data-action="toggle-admin"
+        aria-expanded="false" aria-controls="embeddisc-admin-body-{{threadid}}">
+        <i class="fa fa-cog" aria-hidden="true"></i>
+        <span>{{#str}}adminpanel, filter_embeddiscussion{{/str}}</span>
+      </button>
+      <div class="embeddisc-admin-body collapse" id="embeddisc-admin-body-{{threadid}}">
+        <div class="custom-control custom-switch">
+          <input type="checkbox" class="custom-control-input" id="embeddisc-anon-{{threadid}}"
+            data-action="toggle-anonymous" {{#anonymous}}checked{{/anonymous}}>
+          <label class="custom-control-label" for="embeddisc-anon-{{threadid}}">
+            {{#str}}anonymousposts, filter_embeddiscussion{{/str}}
+          </label>
+          <div class="text-muted small">{{#str}}anonymousposts_desc, filter_embeddiscussion{{/str}}</div>
+        </div>
+        <div class="custom-control custom-switch mt-2">
+          <input type="checkbox" class="custom-control-input" id="embeddisc-locked-{{threadid}}"
+            data-action="toggle-locked" {{#locked}}checked{{/locked}}>
+          <label class="custom-control-label" for="embeddisc-locked-{{threadid}}">
+            {{#str}}lockthread, filter_embeddiscussion{{/str}}
+          </label>
+          <div class="text-muted small">{{#str}}lockthread_desc, filter_embeddiscussion{{/str}}</div>
+        </div>
+      </div>
+    </div>
+  {{/canmanagethread}}
+
+  <div class="embeddisc-header">
+    <h4 class="embeddisc-title" data-region="post-count">
+      {{#postcount}}{{postcount}}{{/postcount}}{{^postcount}}0{{/postcount}}
+      {{#str}}comment, filter_embeddiscussion{{/str}}{{#postcount}}{{^one}}s{{/one}}{{/postcount}}{{^postcount}}s{{/postcount}}
+    </h4>
+    <hr class="embeddisc-divider">
+  </div>
+
+  {{#locked}}
+    <div class="alert alert-warning" role="alert">{{#str}}threadlocked, filter_embeddiscussion{{/str}}</div>
+  {{/locked}}
+
+  <div class="embeddisc-composer" data-region="composer">
+    <div class="embeddisc-composer-row" data-region="composer-collapsed">
+      <div class="embeddisc-composer-avatar" data-region="composer-avatar"></div>
+      <button type="button" class="embeddisc-composer-trigger" data-action="open-composer"
+        {{^canpost}}disabled{{/canpost}}>
+        {{#postcount}}{{#str}}jointhediscussion, filter_embeddiscussion{{/str}}{{/postcount}}{{^postcount}}{{#str}}startthediscussion, filter_embeddiscussion{{/str}}{{/postcount}}
+      </button>
+    </div>
+    <div class="embeddisc-composer-expanded d-none" data-region="composer-expanded">
+      <div class="embeddisc-editor" data-region="editor"></div>
+      <div class="embeddisc-composer-actions">
+        <button type="button" class="btn btn-link" data-action="cancel-compose">{{#str}}cancel, filter_embeddiscussion{{/str}}</button>
+        <button type="button" class="btn btn-primary" data-action="submit-compose">{{#str}}comment, filter_embeddiscussion{{/str}}</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="embeddisc-sort">
+    <button type="button" class="embeddisc-sort-btn" data-action="sort" data-sort="newest">{{#str}}newest, filter_embeddiscussion{{/str}}</button>
+    <button type="button" class="embeddisc-sort-btn embeddisc-sort-active" data-action="sort" data-sort="oldest">{{#str}}oldest, filter_embeddiscussion{{/str}}</button>
+  </div>
+
+  <div class="embeddisc-posts" data-region="posts" aria-live="polite"></div>
+
+  <div class="embeddisc-empty {{#postcount}}d-none{{/postcount}}" data-region="empty">
+    {{#str}}befirsttocomment, filter_embeddiscussion{{/str}}
+  </div>
+</div>

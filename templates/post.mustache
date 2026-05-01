@@ -1,0 +1,71 @@
+{{!
+    @template filter_embeddiscussion/post
+
+    A single post or reply.
+
+    Required context:
+      id, parentid, content, deleted, edited,
+      timecreated, timecreatediso, timecreatedrelative,
+      authorname, authorrole, isanonymous, profileurl, avatar,
+      votes_up, votes_down, votes_my,
+      canedit, candelete, canreply
+
+    Optional:
+      indent (int 0..3) — for visual nesting
+}}
+<div class="embeddisc-post {{#deleted}}embeddisc-post-deleted{{/deleted}}" data-region="post" data-postid="{{id}}"
+  data-parentid="{{parentid}}" data-indent="{{indent}}">
+  <div class="embeddisc-post-avatar">
+    {{#profileurl}}<a href="{{profileurl}}">{{{avatar}}}</a>{{/profileurl}}
+    {{^profileurl}}{{{avatar}}}{{/profileurl}}
+  </div>
+  <div class="embeddisc-post-body">
+    <div class="embeddisc-post-meta">
+      {{#profileurl}}<a class="embeddisc-post-author" href="{{profileurl}}">{{authorname}}</a>{{/profileurl}}
+      {{^profileurl}}<span class="embeddisc-post-author">{{authorname}}</span>{{/profileurl}}
+      {{#authorrole}}<span class="embeddisc-post-role">{{authorrole}}</span>{{/authorrole}}
+    </div>
+    <div class="embeddisc-post-time">
+      <span class="embeddisc-post-time-relative" data-region="time-ago" data-timestamp="{{timecreated}}"
+        title="{{timecreatediso}}">{{timecreatedrelative}}</span>
+      {{#edited}}<span class="embeddisc-post-edited">{{#str}}edited, filter_embeddiscussion{{/str}}</span>{{/edited}}
+    </div>
+    {{#deleted}}
+      <div class="embeddisc-post-content text-muted">{{#str}}deleted_post, filter_embeddiscussion{{/str}}</div>
+    {{/deleted}}
+    {{^deleted}}
+      <div class="embeddisc-post-content" data-region="post-content">{{{content}}}</div>
+      <div class="embeddisc-post-actions">
+        <button type="button" class="embeddisc-action embeddisc-vote {{#votes_my_up}}active{{/votes_my_up}}"
+          data-action="vote" data-direction="1" aria-label="Up vote">
+          <i class="fa fa-thumbs-up" aria-hidden="true"></i>
+          <span data-region="votes-up">{{votes_up}}</span>
+        </button>
+        <button type="button" class="embeddisc-action embeddisc-vote {{#votes_my_down}}active{{/votes_my_down}}"
+          data-action="vote" data-direction="-1" aria-label="Down vote">
+          <i class="fa fa-thumbs-down" aria-hidden="true"></i>
+          <span data-region="votes-down">{{votes_down}}</span>
+        </button>
+        {{#canedit}}
+          <button type="button" class="embeddisc-action" data-action="edit" aria-label="Edit">
+            <i class="fa fa-pencil" aria-hidden="true"></i>
+            <span>{{#str}}edit, filter_embeddiscussion{{/str}}</span>
+          </button>
+        {{/canedit}}
+        {{#candelete}}
+          <button type="button" class="embeddisc-action embeddisc-action-delete" data-action="delete" aria-label="Delete">
+            <i class="fa fa-trash" aria-hidden="true"></i>
+            <span>{{#str}}delete, filter_embeddiscussion{{/str}}</span>
+          </button>
+        {{/candelete}}
+        {{#canreply}}
+          <button type="button" class="embeddisc-action" data-action="reply" aria-label="Reply">
+            <i class="fa fa-reply" aria-hidden="true"></i>
+            <span>{{#str}}reply, filter_embeddiscussion{{/str}}</span>
+          </button>
+        {{/canreply}}
+      </div>
+    {{/deleted}}
+    <div class="embeddisc-replies" data-region="replies"></div>
+  </div>
+</div>
