@@ -61,10 +61,16 @@
   {{/currentuserisanonymous}}
 
   <div class="embeddisc-header">
-    <h4 class="embeddisc-title" data-region="post-count">
-      {{#postcount}}{{postcount}}{{/postcount}}{{^postcount}}0{{/postcount}}
-      {{#str}}comment, filter_embeddiscussion{{/str}}{{#postcount}}{{^one}}s{{/one}}{{/postcount}}{{^postcount}}s{{/postcount}}
-    </h4>
+    <div class="embeddisc-header-row">
+      <div class="embeddisc-title" data-region="post-count">
+        {{#postcount}}{{postcount}}{{/postcount}}{{^postcount}}0{{/postcount}}
+        {{#str}}comment, filter_embeddiscussion{{/str}}{{#postcount}}{{^one}}s{{/one}}{{/postcount}}{{^postcount}}s{{/postcount}}
+      </div>
+      <div class="embeddisc-sort">
+        <button type="button" class="embeddisc-sort-btn" data-action="sort" data-sort="newest">{{#str}}newest, filter_embeddiscussion{{/str}}</button>
+        <button type="button" class="embeddisc-sort-btn embeddisc-sort-active" data-action="sort" data-sort="oldest">{{#str}}oldest, filter_embeddiscussion{{/str}}</button>
+      </div>
+    </div>
     <hr class="embeddisc-divider">
   </div>
 
@@ -92,11 +98,6 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="embeddisc-sort">
-    <button type="button" class="embeddisc-sort-btn" data-action="sort" data-sort="newest">{{#str}}newest, filter_embeddiscussion{{/str}}</button>
-    <button type="button" class="embeddisc-sort-btn embeddisc-sort-active" data-action="sort" data-sort="oldest">{{#str}}oldest, filter_embeddiscussion{{/str}}</button>
   </div>
 
   <div class="embeddisc-posts" data-region="posts" aria-live="polite"></div>

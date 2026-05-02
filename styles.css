@@ -41,9 +41,13 @@
 .embeddisc-header {
     margin-bottom: 1rem;
 }
+.embeddisc-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
 .embeddisc-title {
-    font-size: 1rem;
-    font-weight: 600;
     margin: 0;
 }
 .embeddisc-divider {
@@ -134,9 +138,7 @@
 /* --- Sort buttons -------------------------------------------------------- */
 .embeddisc-sort {
     display: flex;
-    justify-content: flex-end;
     gap: 1rem;
-    margin: 0.5rem 0 0.75rem;
 }
 .embeddisc-sort-btn {
     background: none;
@@ -164,13 +166,19 @@
     margin: 1rem 0;
 }
 .embeddisc-post[data-indent="1"] {
+    /*
     margin-left: 1.5rem;
+    */
 }
 .embeddisc-post[data-indent="2"] {
+    /*
     margin-left: 3rem;
+    */
 }
 .embeddisc-post[data-indent="3"] {
+    /*
     margin-left: 4.5rem;
+    */
 }
 .embeddisc .embeddisc-post-avatar {
     flex: 0 0 auto;

@@ -559,7 +559,10 @@ class manager {
         $rolelabel = '';
         $isown = $author && ((int)$author->id === (int)$USER->id);
 
-        if (!$post->deleted && $author) {
+        if ($post->deleted) {
+            $avatar = '<img class="userpicture" alt="" src="' .
+                s($renderer->image_url('u/f1')->out(false)) . '" width="48" height="48">';
+        } else if ($author) {
             $isstudent = self::user_is_student($context, (int)$author->id);
             $rolelabel = self::user_role_label($context, (int)$author->id);
 
