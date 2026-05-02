@@ -95,6 +95,153 @@ final class text_filter_test extends \advanced_testcase {
     }
 
     /**
+     * Verify that the trailing site name is stripped from a page title.
+     *
+     * @dataProvider derive_page_name_provider
+     * @param string $pagetitle the simulated $PAGE->title value
+     * @param array $sitenames candidate site name strings (fullname, shortname)
+     * @param string $expected the expected derived page name
+     */
+    public function test_derive_page_name(string $pagetitle, array $sitenames, string $expected): void {
+        $this->assertSame($expected, text_filter::derive_page_name($pagetitle, $sitenames));
+    }
+
+    /**
+     * Cases for derive_page_name covering site-suffix stripping behaviour.
+     *
+     * @return array
+     */
+    public static function derive_page_name_provider(): array {
+        return [
+            'fullname suffix stripped' => [
+                'Celebrating Cultures | Interesting cities | Mount Orange',
+                ['Mount Orange', 'mountorange'],
+                'Celebrating Cultures | Interesting cities',
+            ],
+            'shortname suffix stripped when fullname does not match' => [
+                'Celebrating Cultures | Interesting cities | mountorange',
+                ['Mount Orange', 'mountorange'],
+                'Celebrating Cultures | Interesting cities',
+            ],
+            'no separator means no strip' => [
+                'Celebrating Cultures',
+                ['Mount Orange'],
+                'Celebrating Cultures',
+            ],
+            'no match keeps title as-is' => [
+                'Celebrating Cultures | Some Other Site',
+                ['Mount Orange', 'mountorange'],
+                'Celebrating Cultures | Some Other Site',
+            ],
+            'empty title returns empty' => [
+                '',
+                ['Mount Orange'],
+                '',
+            ],
+            'whitespace-only title returns empty' => [
+                '   ',
+                ['Mount Orange'],
+                '',
+            ],
+            'empty site names returns trimmed title' => [
+                '  Just a page  ',
+                ['', '   '],
+                'Just a page',
+            ],
+            'trailing space around separator handled by trim' => [
+                'Page name | Mount Orange   ',
+                ['Mount Orange'],
+                'Page name',
+            ],
+        ];
+    }
+
+    public function test_convert_legacy_tokens_basic_disqus(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Course: Course 1', false);
+        $SITE->fullname = 'Acceptance test site';
+        $SITE->shortname = 'Acceptance test site';
+        $output = text_filter::convert_legacy_tokens('Before [[filter_disqus]] after');
+        $this->assertSame('Before {embeddiscussion:Course: Course 1} after', $output);
+    }
+
+    public function test_convert_legacy_tokens_disqus_with_segment(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Course: Course 1', false);
+        $SITE->fullname = 'Acceptance test site';
+        $SITE->shortname = 'Acceptance test site';
+        $output = text_filter::convert_legacy_tokens('[[filter_disqus:book-23]]');
+        $this->assertSame('{embeddiscussion:Course: Course 1 (book-23)}', $output);
+    }
+
+    public function test_convert_legacy_tokens_comments(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Course: Course 1', false);
+        $SITE->fullname = 'Acceptance test site';
+        $SITE->shortname = 'Acceptance test site';
+        $output = text_filter::convert_legacy_tokens('Comments here: {comments}');
+        $this->assertSame('Comments here: {embeddiscussion:Course: Course 1}', $output);
+    }
+
+    public function test_convert_legacy_tokens_strips_site_suffix(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Celebrating Cultures | Interesting cities | Mount Orange', false);
+        $SITE->fullname = 'Mount Orange';
+        $SITE->shortname = 'mountorange';
+        $output = text_filter::convert_legacy_tokens('[[filter_disqus]]');
+        $this->assertSame('{embeddiscussion:Celebrating Cultures | Interesting cities}', $output);
+    }
+
+    public function test_convert_legacy_tokens_leaves_text_when_title_empty(): void {
+        global $PAGE;
+        $this->resetAfterTest();
+        $PAGE->set_title('', false);
+        $input = 'Untouched [[filter_disqus]] {comments}';
+        $this->assertSame($input, text_filter::convert_legacy_tokens($input));
+    }
+
+    public function test_filter_renders_legacy_disqus_token(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Course: Course 1', false);
+        $SITE->fullname = 'Acceptance test site';
+        $SITE->shortname = 'Acceptance test site';
+        $context = \context_system::instance();
+        $filter = new text_filter($context, []);
+        $output = $filter->filter('Before [[filter_disqus]] after');
+        $this->assertStringContainsString('data-region="filter-embeddiscussion"', $output);
+        $this->assertStringContainsString('data-thread-name="Course: Course 1"', $output);
+    }
+
+    public function test_filter_renders_legacy_disqus_segment_token(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Course: Course 1', false);
+        $SITE->fullname = 'Acceptance test site';
+        $SITE->shortname = 'Acceptance test site';
+        $context = \context_system::instance();
+        $filter = new text_filter($context, []);
+        $output = $filter->filter('[[filter_disqus:book-23]]');
+        $this->assertStringContainsString('data-thread-name="Course: Course 1 (book-23)"', $output);
+    }
+
+    public function test_filter_renders_legacy_comments_token(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Course: Course 1', false);
+        $SITE->fullname = 'Acceptance test site';
+        $SITE->shortname = 'Acceptance test site';
+        $context = \context_system::instance();
+        $filter = new text_filter($context, []);
+        $output = $filter->filter('{comments}');
+        $this->assertStringContainsString('data-thread-name="Course: Course 1"', $output);
+    }
+
+    /**
      * Cases for parse_token_body covering keyword combinations and edge cases.
      *
      * @return array

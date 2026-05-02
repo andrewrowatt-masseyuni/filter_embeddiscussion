@@ -26,6 +26,14 @@ namespace filter_embeddiscussion;
  *   - lock | locked     - the thread is locked (no new posts or edits).
  *   - anon | anonymous  - student posts are shown with anonymous handles.
  *
+ * Legacy syntaxes (drop-in replacement for filter_disqus and the {comments} block) are
+ * also recognised and rewritten to the canonical token before processing:
+ *   - [[filter_disqus]]                 -> {embeddiscussion:<page name>}
+ *   - [[filter_disqus:<url_segment>]]   -> {embeddiscussion:<page name> (<url_segment>)}
+ *   - {comments}                        -> {embeddiscussion:<page name>}
+ * where <page name> is the current $PAGE->title with any trailing
+ * " | <site fullname>" or " | <site shortname>" segment stripped off.
+ *
  * @package    filter_embeddiscussion
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -33,6 +41,9 @@ namespace filter_embeddiscussion;
 class text_filter extends \core_filters\text_filter {
     /** Pattern matches both {embeddeddiscussion:..} and {embeddiscussion:..}. */
     const PATTERN = '/\{embedd(?:eddi|i)scussion:([^}]+)\}/i';
+
+    /** Pattern matches the legacy [[filter_disqus]] / [[filter_disqus:segment]] / {comments} tokens. */
+    const LEGACY_PATTERN = '/\[\[filter_disqus(?::([^\]]*))?\]\]|\{comments\}/i';
 
     /** @var bool Module/page resources requested. */
     protected static $requirementsdone = false;
@@ -47,7 +58,16 @@ class text_filter extends \core_filters\text_filter {
     public function filter($text, array $options = []) {
         global $PAGE, $OUTPUT;
 
-        if (!\is_string($text) || \strpos($text, 'iscussion:') === false) {
+        if (!\is_string($text)) {
+            return $text;
+        }
+
+        // Rewrite any legacy filter_disqus / {comments} tokens to the canonical token first.
+        if (preg_match(self::LEGACY_PATTERN, $text)) {
+            $text = self::convert_legacy_tokens($text);
+        }
+
+        if (\strpos($text, 'iscussion:') === false) {
             return $text;
         }
 
@@ -124,5 +144,105 @@ class text_filter extends \core_filters\text_filter {
 
         $name = trim(implode(', ', $parts));
         return ['name' => $name, 'anonymous' => $anonymous, 'locked' => $locked];
+    }
+
+    /**
+     * Rewrite legacy filter_disqus / {comments} tokens in text to the canonical
+     * {embeddiscussion:...} token, deriving the thread name from $PAGE->title.
+     *
+     * If the page title is unavailable (for example, when the filter runs in a
+     * context without a fully-initialised page), the legacy tokens are left
+     * untouched so that the original text is preserved.
+     *
+     * @param string $text the text being filtered
+     * @return string the text with any legacy tokens rewritten
+     */
+    public static function convert_legacy_tokens(string $text): string {
+        global $PAGE, $SITE;
+
+        $pagetitle = '';
+        $sitenames = [];
+
+        if (isset($PAGE) && is_object($PAGE)) {
+            $pagetitle = (string) ($PAGE->title ?? '');
+        }
+        if (isset($SITE) && is_object($SITE)) {
+            $sitenames[] = (string) ($SITE->fullname ?? '');
+            $sitenames[] = (string) ($SITE->shortname ?? '');
+        }
+
+        $pagename = self::derive_page_name($pagetitle, $sitenames);
+        if ($pagename === '') {
+            return $text;
+        }
+
+        $text = preg_replace_callback(
+            '/\[\[filter_disqus(?::([^\]]*))?\]\]/i',
+            function ($matches) use ($pagename) {
+                $segment = isset($matches[1]) ? trim($matches[1]) : '';
+                $threadname = $segment !== '' ? $pagename . ' (' . $segment . ')' : $pagename;
+                return '{embeddiscussion:' . self::sanitise_thread_name($threadname) . '}';
+            },
+            $text
+        );
+
+        $text = preg_replace_callback(
+            '/\{comments\}/i',
+            function () use ($pagename) {
+                return '{embeddiscussion:' . self::sanitise_thread_name($pagename) . '}';
+            },
+            $text
+        );
+
+        return $text;
+    }
+
+    /**
+     * Strip the trailing site fullname or shortname segment from a page title.
+     *
+     * Moodle pages are titled "<page name> | <site name>" (see
+     * moodle_page::TITLE_SEPARATOR), so this removes the trailing
+     * " | <site fullname>" or " | <site shortname>" segment if present and
+     * returns the leading portion. If neither matches, the trimmed title is
+     * returned unchanged.
+     *
+     * @param string $pagetitle the raw $PAGE->title value
+     * @param array $sitenames candidate site name strings (fullname, shortname)
+     * @return string the page name with any site name suffix removed
+     */
+    public static function derive_page_name(string $pagetitle, array $sitenames): string {
+        $pagetitle = trim($pagetitle);
+        if ($pagetitle === '') {
+            return '';
+        }
+
+        $separator = ' | ';
+        foreach ($sitenames as $name) {
+            $name = trim((string) $name);
+            if ($name === '') {
+                continue;
+            }
+            $suffix = $separator . $name;
+            $suffixlen = strlen($suffix);
+            if (strlen($pagetitle) > $suffixlen && substr($pagetitle, -$suffixlen) === $suffix) {
+                return trim(substr($pagetitle, 0, -$suffixlen));
+            }
+        }
+
+        return $pagetitle;
+    }
+
+    /**
+     * Remove characters that would prematurely terminate the canonical token or
+     * be misinterpreted by parse_token_body() when a thread name is composed
+     * from a page title.
+     *
+     * @param string $name the thread name being built from page metadata
+     * @return string the sanitised thread name
+     */
+    protected static function sanitise_thread_name(string $name): string {
+        // The canonical token ends at the first '}' so strip any literal closing brace.
+        // Commas would otherwise cause parse_token_body() to look for trailing keywords.
+        return trim(str_replace(['}', ','], ['', ' '], $name));
     }
 }
