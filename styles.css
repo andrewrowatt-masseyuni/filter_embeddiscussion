@@ -5,23 +5,77 @@
 }
 
 /* --- Skeleton placeholder shown before JS hydrates ----------------------- */
-.embeddisc-skeleton {
-    padding: 1rem 0;
-}
-.embeddisc-skeleton-line {
-    height: 0.75rem;
+.embeddisc-skeleton-block {
     background: linear-gradient(90deg, #eee 0%, #f6f6f6 50%, #eee 100%);
     background-size: 200% 100%;
     animation: embeddisc-skeleton-pulse 1.4s linear infinite;
     border-radius: 4px;
-    margin-bottom: 0.5rem;
 }
 .embeddisc-skeleton-title {
-    width: 30%;
+    width: 90px;
+    height: 1.1rem;
+}
+.embeddisc-skeleton-sort {
+    width: 50px;
     height: 1rem;
 }
-.embeddisc-skeleton-line + .embeddisc-skeleton-line {
-    width: 90%;
+.embeddisc-skeleton-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+}
+.embeddisc-skeleton-trigger {
+    height: 2.4rem;
+    border-radius: 8px;
+    background: #f6f6f6;
+    border: 1px solid #ececec;
+    animation: none;
+}
+.embeddisc-skeleton-post {
+    display: flex;
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+.embeddisc-skeleton-post-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.embeddisc-skeleton-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+.embeddisc-skeleton-name {
+    width: 110px;
+    height: 0.9rem;
+}
+.embeddisc-skeleton-role {
+    width: 50px;
+    height: 0.9rem;
+}
+.embeddisc-skeleton-time {
+    width: 70px;
+    height: 0.7rem;
+    margin-bottom: 0.6rem;
+}
+.embeddisc-skeleton-content {
+    width: 35%;
+    height: 0.9rem;
+    margin-bottom: 0.6rem;
+}
+.embeddisc-skeleton-content-short {
+    width: 22%;
+}
+.embeddisc-skeleton-actions {
+    display: flex;
+    gap: 1.25rem;
+    margin-top: 0.4rem;
+}
+.embeddisc-skeleton-action {
+    width: 36px;
+    height: 0.85rem;
 }
 
 @keyframes embeddisc-skeleton-pulse {

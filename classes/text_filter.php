@@ -45,7 +45,7 @@ class text_filter extends \core_filters\text_filter {
      * @return string the HTML content after the filtering has been applied.
      */
     public function filter($text, array $options = []) {
-        global $PAGE;
+        global $PAGE, $OUTPUT;
 
         if (!\is_string($text) || \strpos($text, 'iscussion:') === false) {
             return $text;
@@ -57,34 +57,18 @@ class text_filter extends \core_filters\text_filter {
 
         $contextid = $this->context->id;
 
-        $text = preg_replace_callback(self::PATTERN, function ($matches) use ($contextid) {
+        $text = preg_replace_callback(self::PATTERN, function ($matches) use ($contextid, $OUTPUT) {
             $parsed = self::parse_token_body($matches[1]);
             if ($parsed['name'] === '') {
                 return $matches[0];
             }
-            $uid = uniqid('embeddisc_', true);
-            $attrs = [
-                'class' => 'filter-embeddiscussion',
-                'data-region' => 'filter-embeddiscussion',
-                'id' => $uid,
-                'data-thread-name' => $parsed['name'],
-                'data-anonymous' => $parsed['anonymous'] ? '1' : '0',
-                'data-locked' => $parsed['locked'] ? '1' : '0',
-                'data-contextid' => $contextid,
-            ];
-            $skeleton = \html_writer::tag(
-                'div',
-                \html_writer::tag('div', '', ['class' => 'embeddisc-skeleton-line embeddisc-skeleton-title']) .
-                \html_writer::tag('div', '', ['class' => 'embeddisc-skeleton-line']) .
-                \html_writer::tag('div', '', ['class' => 'embeddisc-skeleton-line']) .
-                \html_writer::tag(
-                    'div',
-                    get_string('threadnotinitialised', 'filter_embeddiscussion'),
-                    ['class' => 'sr-only']
-                ),
-                ['class' => 'embeddisc-skeleton', 'aria-hidden' => 'true']
-            );
-            return \html_writer::tag('div', $skeleton, $attrs);
+            return $OUTPUT->render_from_template('filter_embeddiscussion/placeholder', [
+                'uid' => uniqid('embeddisc_', true),
+                'threadname' => $parsed['name'],
+                'anonymous' => $parsed['anonymous'] ? '1' : '0',
+                'locked' => $parsed['locked'] ? '1' : '0',
+                'contextid' => $contextid,
+            ]);
         }, $text);
 
         // Request the JS bootstrapper once per page.
