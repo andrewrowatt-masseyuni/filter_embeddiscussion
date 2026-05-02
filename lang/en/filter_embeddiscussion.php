@@ -28,6 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 $string['allposts'] = 'All posts';
 $string['anonymous'] = 'Anonymous';
 $string['anonymousnotice'] = 'Your posts will be anonymous to other students.';
+$string['anonymousnoticemanager'] = 'Student posts will appear as anonymous to other students.';
 $string['befirsttocomment'] = 'Be the first to comment.';
 $string['cancel'] = 'Cancel';
 $string['comment'] = 'Comment';

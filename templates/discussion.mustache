@@ -48,6 +48,12 @@
       <span>{{#str}}anonymousnotice, filter_embeddiscussion{{/str}}</span>
     </div>
   {{/currentuserisanonymous}}
+  {{#anonymous}}{{#canmanageposts}}
+    <div class="embeddisc-anonymous-notice" role="note">
+      <i class="fa fa-info-circle" aria-hidden="true"></i>
+      <span>{{#str}}anonymousnoticemanager, filter_embeddiscussion{{/str}}</span>
+    </div>
+  {{/canmanageposts}}{{/anonymous}}
 
   <div class="embeddisc-header">
     <div class="embeddisc-header-row">

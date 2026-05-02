@@ -190,7 +190,8 @@
 .embeddisc .embeddisc-post-avatar .userinitials {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    /* stylelint-disable-next-line declaration-no-important */
+    border-radius: 50% !important; /* Override default Snap theme styles */
     object-fit: cover;
     margin: 0;
     font-size: 0.85rem;

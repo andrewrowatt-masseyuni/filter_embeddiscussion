@@ -574,7 +574,7 @@ class manager {
             } else {
                 $authorname = $handle;
                 $avatar = '<img class="userpicture" alt="" src="' .
-                    s(geopattern::data_uri('embeddisc:' . $thread->id . ':' . $author->id, 64)) .
+                    s(identicon::data_uri('embeddisc:' . $thread->id . ':' . $author->id)) .
                     '" width="48" height="48">';
             }
         }
