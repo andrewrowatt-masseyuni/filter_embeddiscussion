@@ -60,11 +60,4 @@ $functions = [
         'ajax' => true,
         'loginrequired' => true,
     ],
-    'filter_embeddiscussion_save_settings' => [
-        'classname' => 'filter_embeddiscussion\external\save_settings',
-        'description' => 'Update thread admin settings (anonymous, locked).',
-        'type' => 'write',
-        'ajax' => true,
-        'loginrequired' => true,
-    ],
 ];

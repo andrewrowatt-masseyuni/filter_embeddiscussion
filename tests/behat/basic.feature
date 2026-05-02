@@ -34,11 +34,4 @@ Feature: Embedded discussion filter
     Given I log in as "student1"
     And I am on "Course 1" course homepage
     Then "[data-region='filter-embeddiscussion'][data-thread-name='Course 1 Demo']" "css_element" should exist
-
-  @javascript
-  Scenario: Teacher sees the discussion settings panel
-    Given I log in as "teacher1"
-    And I am on "Course 1" course homepage
-    And I wait until the page is ready
-    Then I should see "Discussion settings"
-    And "[data-region='filter-embeddiscussion']" "css_element" should exist
+    And "[data-region='filter-embeddiscussion'][data-anonymous='0'][data-locked='0']" "css_element" should exist

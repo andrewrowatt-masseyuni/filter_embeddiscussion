@@ -107,17 +107,16 @@ class manager {
     }
 
     /**
-     * Update thread admin settings.
+     * Sync the thread's anonymous/locked flags to match the values declared on
+     * the filter token. Authority lives with whoever can edit the host content,
+     * so no extra capability check is performed here.
      *
      * @param \stdClass $thread
-     * @param \context $context
-     * @param array $settings keys: anonymous, locked
+     * @param array $settings keys: anonymous, locked (bool)
      * @return \stdClass updated thread record
      */
-    public static function update_settings(\stdClass $thread, \context $context, array $settings): \stdClass {
+    public static function sync_settings_from_token(\stdClass $thread, array $settings): \stdClass {
         global $DB;
-
-        require_capability('filter/embeddiscussion:managethread', $context);
 
         $changed = false;
         if (array_key_exists('anonymous', $settings)) {
@@ -138,7 +137,6 @@ class manager {
         if ($changed) {
             $thread->timemodified = time();
             $DB->update_record('filter_embeddiscussion_thread', $thread);
-            \filter_embeddiscussion\event\thread_settings_changed::create_for_thread($thread, $context)->trigger();
         }
 
         return $thread;
@@ -476,7 +474,6 @@ class manager {
         );
 
         $canviewfullnames = has_capability('moodle/site:viewfullnames', $context);
-        $canmanagethread = has_capability('filter/embeddiscussion:managethread', $context);
         $canmanageposts = has_capability('filter/embeddiscussion:manageposts', $context);
         $candeleteany = has_capability('filter/embeddiscussion:deleteanypost', $context);
         $candeleteown = has_capability('filter/embeddiscussion:deleteownpost', $context);
@@ -510,7 +507,6 @@ class manager {
             'currentuserisanonymous' => $currentuserisanonymous,
             'locked' => (bool)$thread->locked,
             'canpost' => $canpost,
-            'canmanagethread' => $canmanagethread,
             'canmanageposts' => $canmanageposts,
             'postcount' => count($postsout),
             'posts' => $postsout,

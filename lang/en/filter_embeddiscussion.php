@@ -25,11 +25,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['adminpanel'] = 'Discussion settings';
 $string['allposts'] = 'All posts';
+$string['anonymous'] = 'Anonymous';
 $string['anonymousnotice'] = 'Your posts will be anonymous to other students.';
-$string['anonymousposts'] = 'Anonymous posts';
-$string['anonymousposts_desc'] = 'Students will be assigned a handle (e.g., Curious Ibis).';
 $string['befirsttocomment'] = 'Be the first to comment.';
 $string['cancel'] = 'Cancel';
 $string['comment'] = 'Comment';
@@ -44,7 +42,6 @@ $string['embeddiscussion:deleteanypost'] = 'Delete any post in an embedded discu
 $string['embeddiscussion:deleteownpost'] = 'Delete own posts in an embedded discussion';
 $string['embeddiscussion:editownpost'] = 'Edit own posts in an embedded discussion';
 $string['embeddiscussion:manageposts'] = 'Manage (delete) any post in an embedded discussion';
-$string['embeddiscussion:managethread'] = 'Manage thread settings for an embedded discussion';
 $string['embeddiscussion:managethreads'] = 'View and manage all embedded discussion threads in a course';
 $string['error_emptypost'] = 'Post content cannot be empty.';
 $string['error_invalidthread'] = 'Invalid thread.';
@@ -55,11 +52,9 @@ $string['event:post_deleted'] = 'Embedded discussion post deleted';
 $string['event:post_edited'] = 'Embedded discussion post edited';
 $string['event:post_voted'] = 'Embedded discussion post voted on';
 $string['event:thread_initialised'] = 'Embedded discussion thread initialised';
-$string['event:thread_settings_changed'] = 'Embedded discussion settings changed';
 $string['filtername'] = 'Embedded discussion';
 $string['jointhediscussion'] = 'Join the discussion…';
-$string['lockthread'] = 'Lock thread';
-$string['lockthread_desc'] = 'Prevents new posts and edits.';
+$string['locked'] = 'Locked';
 $string['newest'] = 'Newest';
 $string['nocomments'] = '0 Comments';
 $string['nothreads'] = 'No embedded discussions in this course.';

@@ -53,6 +53,8 @@ class Discussion {
         this.root = root;
         this.threadName = root.dataset.threadName;
         this.contextid = parseInt(root.dataset.contextid, 10);
+        this.anonymous = root.dataset.anonymous === '1';
+        this.locked = root.dataset.locked === '1';
         this.thread = null; // server payload.
         this.sortMode = 'oldest';
         this.composerEditor = null;
@@ -66,6 +68,8 @@ class Discussion {
             args: {
                 name: this.threadName,
                 contextid: this.contextid,
+                anonymous: this.anonymous,
+                locked: this.locked,
             },
         }])[0].then(data => this.render(data))
             .catch(Notification.exception);
@@ -148,10 +152,6 @@ class Discussion {
      */
     bind() {
         this.root.addEventListener('click', this.onClick.bind(this));
-
-        // Admin toggles bind separately (change events).
-        this.root.querySelectorAll('[data-action="toggle-anonymous"], [data-action="toggle-locked"]')
-            .forEach(input => input.addEventListener('change', this.onAdminChange.bind(this)));
     }
 
     onClick(e) {
@@ -169,7 +169,6 @@ class Discussion {
             case 'edit': return this.openEdit(target);
             case 'delete': return this.confirmDelete(target);
             case 'vote': return this.vote(target);
-            case 'toggle-admin': return this.toggleAdmin(target);
             default:
         }
     }
@@ -429,34 +428,6 @@ class Discussion {
         }
     }
 
-    toggleAdmin(button) {
-        const body = this.root.querySelector('.embeddisc-admin-body');
-        if (!body) {
-            return;
-        }
-        const isOpen = body.classList.toggle('show');
-        button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    }
-
-    async onAdminChange() {
-        const anon = this.root.querySelector('[data-action="toggle-anonymous"]');
-        const lock = this.root.querySelector('[data-action="toggle-locked"]');
-        try {
-            const data = await Ajax.call([{
-                methodname: 'filter_embeddiscussion_save_settings',
-                args: {
-                    threadid: this.thread.threadid,
-                    contextid: this.contextid,
-                    anonymous: anon ? !!anon.checked : false,
-                    locked: lock ? !!lock.checked : false,
-                },
-            }])[0];
-            this.thread = data;
-            await this.renderPosts();
-        } catch (e) {
-            Notification.exception(e);
-        }
-    }
 }
 
 // Re-export format so tests can import it.

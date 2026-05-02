@@ -120,7 +120,7 @@ class thread extends base {
 
         $columns[] = (new column(
             'anonymous',
-            new lang_string('anonymousposts', 'filter_embeddiscussion'),
+            new lang_string('anonymous', 'filter_embeddiscussion'),
             $this->get_entity_name()
         ))
             ->add_joins($this->get_joins())
@@ -133,7 +133,7 @@ class thread extends base {
 
         $columns[] = (new column(
             'locked',
-            new lang_string('lockthread', 'filter_embeddiscussion'),
+            new lang_string('locked', 'filter_embeddiscussion'),
             $this->get_entity_name()
         ))
             ->add_joins($this->get_joins())
@@ -180,7 +180,7 @@ class thread extends base {
         $filters[] = (new filter(
             boolean_select::class,
             'anonymous',
-            new lang_string('anonymousposts', 'filter_embeddiscussion'),
+            new lang_string('anonymous', 'filter_embeddiscussion'),
             $this->get_entity_name(),
             "{$alias}.anonymous"
         ))->add_joins($this->get_joins());
@@ -188,7 +188,7 @@ class thread extends base {
         $filters[] = (new filter(
             boolean_select::class,
             'locked',
-            new lang_string('lockthread', 'filter_embeddiscussion'),
+            new lang_string('locked', 'filter_embeddiscussion'),
             $this->get_entity_name(),
             "{$alias}.locked"
         ))->add_joins($this->get_joins());

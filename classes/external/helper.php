@@ -74,7 +74,6 @@ class helper {
             ),
             'locked' => new external_value(PARAM_BOOL, 'Locked'),
             'canpost' => new external_value(PARAM_BOOL, 'Viewer can post'),
-            'canmanagethread' => new external_value(PARAM_BOOL, 'Viewer can manage thread settings'),
             'canmanageposts' => new external_value(PARAM_BOOL, 'Viewer can moderate posts'),
             'postcount' => new external_value(PARAM_INT, 'Number of posts'),
             'currentuserid' => new external_value(PARAM_INT, 'Current user id'),

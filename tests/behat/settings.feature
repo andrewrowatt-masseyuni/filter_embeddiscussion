@@ -1,8 +1,8 @@
 @filter @filter_embeddiscussion
-Feature: Anonymous and locked thread settings
+Feature: Anonymous and locked thread settings driven by filter token keywords
   In order to control the tone of an embedded discussion
   As a teacher
-  I should be able to enable anonymous mode and lock a thread
+  I should be able to enable anonymous mode or lock a thread by adding keywords to the filter token
 
   Background:
     Given the following "courses" exist:
@@ -17,43 +17,54 @@ Feature: Anonymous and locked thread settings
       | teacher1 | C1     | editingteacher |
       | student1 | C1     | student        |
     And the "embeddiscussion" filter is "on"
-    And the following "activities" exist:
-      | activity | course | name      | intro                                | idnumber |
-      | label    | C1     | Discuss A | {embeddeddiscussion:Settings demo}   | l1       |
+    And I change the window size to "large"
+
+  @javascript
+  Scenario: Anonymous keyword on the token shows the anonymity notice to a student
+    Given the following "activities" exist:
+      | activity | course | name      | intro                                          | idnumber |
+      | label    | C1     | Discuss A | {embeddeddiscussion:Settings demo,anonymous}   | l1       |
     And the following "filter_embeddiscussion > threads" exist:
       | name          | course | activity |
       | Settings demo | C1     | l1       |
     And the following "filter_embeddiscussion > posts" exist:
       | thread        | user     | content                |
       | Settings demo | student1 | Hello from a student   |
-
-    And I change the window size to "large"
-
-  @javascript
-  Scenario: Teacher enables anonymous mode and student sees the anonymity notice
-    Given I log in as "teacher1"
-    And I am on "Course 1" course homepage
-    And the embedded discussion is loaded
-    When I click on "Discussion settings" "button"
-    And I click on "Anonymous posts" "checkbox"
-    And I wait until the page is ready
-    And I log out
-    And I log in as "student1"
+    When I log in as "student1"
     And I am on "Course 1" course homepage
     And the embedded discussion is loaded
     Then I should see "Your posts will be anonymous to other students"
 
   @javascript
-  Scenario: Locking the thread shows the lock alert and disables the composer for students
-    Given I log in as "teacher1"
-    And I am on "Course 1" course homepage
-    And the embedded discussion is loaded
-    When I click on "Discussion settings" "button"
-    And I click on "Lock thread" "checkbox"
-    And I wait until the page is ready
-    And I log out
-    And I log in as "student1"
+  Scenario: Locked keyword on the token shows the lock alert and disables the composer for students
+    Given the following "activities" exist:
+      | activity | course | name      | intro                                       | idnumber |
+      | label    | C1     | Discuss A | {embeddeddiscussion:Settings demo,locked}   | l1       |
+    And the following "filter_embeddiscussion > threads" exist:
+      | name          | course | activity |
+      | Settings demo | C1     | l1       |
+    And the following "filter_embeddiscussion > posts" exist:
+      | thread        | user     | content                |
+      | Settings demo | student1 | Hello from a student   |
+    When I log in as "student1"
     And I am on "Course 1" course homepage
     And the embedded discussion is loaded
     Then I should see "This discussion is locked. New posts and edits are disabled."
     And "[data-action='open-composer'][disabled]" "css_element" should exist
+
+  @javascript
+  Scenario: Both keywords in either order with extra spacing apply to the thread
+    Given the following "activities" exist:
+      | activity | course | name      | intro                                                        | idnumber |
+      | label    | C1     | Discuss A | {embeddeddiscussion:Settings demo, locked , anonymous ,}     | l1       |
+    And the following "filter_embeddiscussion > threads" exist:
+      | name          | course | activity |
+      | Settings demo | C1     | l1       |
+    And the following "filter_embeddiscussion > posts" exist:
+      | thread        | user     | content                |
+      | Settings demo | student1 | Hello from a student   |
+    When I log in as "student1"
+    And I am on "Course 1" course homepage
+    And the embedded discussion is loaded
+    Then I should see "Your posts will be anonymous to other students"
+    And I should see "This discussion is locked. New posts and edits are disabled."

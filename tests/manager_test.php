@@ -66,14 +66,12 @@ final class manager_test extends \advanced_testcase {
         $this->assertEquals(1, $view['postcount']);
         $this->assertEquals($post->id, $view['posts'][0]['id']);
         $this->assertTrue($view['canpost']);
-        $this->assertTrue($view['canmanagethread']);
     }
 
     public function test_locked_thread_blocks_posts_and_edits(): void {
         $this->resetAfterTest();
         $course = $this->getDataGenerator()->create_course();
         $context = \context_course::instance($course->id);
-        $teacher = $this->getDataGenerator()->create_and_enrol($course, 'editingteacher');
         $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
 
         $thread = manager::get_or_create_thread('Locked', $context);
@@ -81,11 +79,9 @@ final class manager_test extends \advanced_testcase {
         $this->setUser($student);
         $post = manager::create_post($thread, $context, 0, 'Hello', $student->id);
 
-        $this->setUser($teacher);
-        $thread = manager::update_settings($thread, $context, ['locked' => true]);
+        $thread = manager::sync_settings_from_token($thread, ['locked' => true]);
         $this->assertEquals(1, $thread->locked);
 
-        $this->setUser($student);
         $this->expectException(\moodle_exception::class);
         manager::create_post($thread, $context, 0, 'Should fail', $student->id);
         // Subsequent edit attempt would also throw, but expectException only matches the first.
@@ -121,13 +117,11 @@ final class manager_test extends \advanced_testcase {
         $this->resetAfterTest();
         $course = $this->getDataGenerator()->create_course();
         $context = \context_course::instance($course->id);
-        $teacher = $this->getDataGenerator()->create_and_enrol($course, 'editingteacher');
         $alice = $this->getDataGenerator()->create_and_enrol($course, 'student');
         $bob = $this->getDataGenerator()->create_and_enrol($course, 'student');
 
         $thread = manager::get_or_create_thread('Anon thread', $context);
-        $this->setUser($teacher);
-        $thread = manager::update_settings($thread, $context, ['anonymous' => true]);
+        $thread = manager::sync_settings_from_token($thread, ['anonymous' => true]);
 
         // First poster -> handleindex 0.
         $this->setUser($alice);

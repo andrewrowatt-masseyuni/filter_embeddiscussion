@@ -72,15 +72,6 @@ $capabilities = [
             'manager' => CAP_ALLOW,
         ],
     ],
-    'filter/embeddiscussion:managethread' => [
-        'captype' => 'write',
-        'contextlevel' => CONTEXT_MODULE,
-        'archetypes' => [
-            'teacher' => CAP_ALLOW,
-            'editingteacher' => CAP_ALLOW,
-            'manager' => CAP_ALLOW,
-        ],
-    ],
     'filter/embeddiscussion:managethreads' => [
         'captype' => 'read',
         'contextlevel' => CONTEXT_COURSE,

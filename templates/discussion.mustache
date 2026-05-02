@@ -19,7 +19,6 @@
     * currentuserisanonymous (bool)
     * locked (bool)
     * canpost (bool)
-    * canmanagethread (bool)
     * canmanageposts (bool)
     * postcount (int)
     * currentuserid (int)
@@ -34,7 +33,6 @@
         "currentuserisanonymous": false,
         "locked": false,
         "canpost": true,
-        "canmanagethread": false,
         "canmanageposts": false,
         "postcount": 0,
         "one": false,
@@ -44,34 +42,6 @@
     }
 }}
 <div class="embeddisc" data-region="embeddisc-root" data-threadid="{{threadid}}" data-anonymous="{{#anonymous}}1{{/anonymous}}{{^anonymous}}0{{/anonymous}}" data-locked="{{#locked}}1{{/locked}}{{^locked}}0{{/locked}}">
-  {{#canmanagethread}}
-    <div class="embeddisc-admin" data-region="admin-panel">
-      <button type="button" class="btn btn-link p-0 embeddisc-admin-toggle" data-action="toggle-admin"
-        aria-expanded="false" aria-controls="embeddisc-admin-body-{{threadid}}">
-        <i class="fa fa-cog" aria-hidden="true"></i>
-        <span>{{#str}}adminpanel, filter_embeddiscussion{{/str}}</span>
-      </button>
-      <div class="embeddisc-admin-body collapse" id="embeddisc-admin-body-{{threadid}}">
-        <div class="custom-control custom-switch">
-          <input type="checkbox" class="custom-control-input" id="embeddisc-anon-{{threadid}}"
-            data-action="toggle-anonymous" {{#anonymous}}checked{{/anonymous}}>
-          <label class="custom-control-label" for="embeddisc-anon-{{threadid}}">
-            {{#str}}anonymousposts, filter_embeddiscussion{{/str}}
-          </label>
-          <div class="text-muted small">{{#str}}anonymousposts_desc, filter_embeddiscussion{{/str}}</div>
-        </div>
-        <div class="custom-control custom-switch mt-2">
-          <input type="checkbox" class="custom-control-input" id="embeddisc-locked-{{threadid}}"
-            data-action="toggle-locked" {{#locked}}checked{{/locked}}>
-          <label class="custom-control-label" for="embeddisc-locked-{{threadid}}">
-            {{#str}}lockthread, filter_embeddiscussion{{/str}}
-          </label>
-          <div class="text-muted small">{{#str}}lockthread_desc, filter_embeddiscussion{{/str}}</div>
-        </div>
-      </div>
-    </div>
-  {{/canmanagethread}}
-
   {{#currentuserisanonymous}}
     <div class="embeddisc-anonymous-notice" role="note">
       <i class="fa fa-info-circle" aria-hidden="true"></i>

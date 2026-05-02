@@ -41,6 +41,8 @@ final class text_filter_test extends \advanced_testcase {
         $output = $filter->filter('Before {embeddeddiscussion:My thread} after');
         $this->assertStringContainsString('data-region="filter-embeddiscussion"', $output);
         $this->assertStringContainsString('data-thread-name="My thread"', $output);
+        $this->assertStringContainsString('data-anonymous="0"', $output);
+        $this->assertStringContainsString('data-locked="0"', $output);
         $this->assertStringContainsString('Before', $output);
         $this->assertStringContainsString('after', $output);
     }
@@ -69,5 +71,76 @@ final class text_filter_test extends \advanced_testcase {
         $filter = new text_filter($context, []);
         $input = '{embeddeddiscussion:}';
         $this->assertSame($input, $filter->filter($input));
+    }
+
+    public function test_filter_emits_anonymous_and_locked_data_attributes(): void {
+        $this->resetAfterTest();
+        $context = \context_system::instance();
+        $filter = new text_filter($context, []);
+        $output = $filter->filter('{embeddeddiscussion:Demo,anonymous,locked}');
+        $this->assertStringContainsString('data-thread-name="Demo"', $output);
+        $this->assertStringContainsString('data-anonymous="1"', $output);
+        $this->assertStringContainsString('data-locked="1"', $output);
+    }
+
+    /**
+     * Verify keyword/name parsing from the bracketed token body.
+     *
+     * @dataProvider parse_token_body_provider
+     * @param string $body the text inside the braces (after the prefix)
+     * @param array $expected expected ['name' => string, 'anonymous' => bool, 'locked' => bool]
+     */
+    public function test_parse_token_body(string $body, array $expected): void {
+        $this->assertSame($expected, text_filter::parse_token_body($body));
+    }
+
+    /**
+     * Cases for parse_token_body covering keyword combinations and edge cases.
+     *
+     * @return array
+     */
+    public static function parse_token_body_provider(): array {
+        return [
+            'plain name' => [
+                'Evaluating Premises - Māramatanga - Understanding',
+                ['name' => 'Evaluating Premises - Māramatanga - Understanding', 'anonymous' => false, 'locked' => false],
+            ],
+            'anon only' => [
+                'Evaluating Premises - Māramatanga - Understanding,anonymous',
+                ['name' => 'Evaluating Premises - Māramatanga - Understanding', 'anonymous' => true, 'locked' => false],
+            ],
+            'anon then locked' => [
+                'Evaluating Premises - Māramatanga - Understanding,anonymous,locked',
+                ['name' => 'Evaluating Premises - Māramatanga - Understanding', 'anonymous' => true, 'locked' => true],
+            ],
+            'locked then anon' => [
+                'Evaluating Premises - Māramatanga - Understanding,locked,anonymous',
+                ['name' => 'Evaluating Premises - Māramatanga - Understanding', 'anonymous' => true, 'locked' => true],
+            ],
+            'name with commas plus keywords' => [
+                'Evaluating, understanding, and reviewing premises,anonymous,locked',
+                ['name' => 'Evaluating, understanding, and reviewing premises', 'anonymous' => true, 'locked' => true],
+            ],
+            'name with commas plus short keywords with extra spaces' => [
+                'Evaluating, understanding, and reviewing premises, anon  ,  lock',
+                ['name' => 'Evaluating, understanding, and reviewing premises', 'anonymous' => true, 'locked' => true],
+            ],
+            'trailing comma trimmed' => [
+                'Evaluating, understanding, and reviewing premises,',
+                ['name' => 'Evaluating, understanding, and reviewing premises', 'anonymous' => false, 'locked' => false],
+            ],
+            'mixed case keywords' => [
+                'Demo,LOCKED,Anon',
+                ['name' => 'Demo', 'anonymous' => true, 'locked' => true],
+            ],
+            'short forms only' => [
+                'Demo,lock,anon',
+                ['name' => 'Demo', 'anonymous' => true, 'locked' => true],
+            ],
+            'unknown trailing word stays in name' => [
+                'Demo, unknown',
+                ['name' => 'Demo, unknown', 'anonymous' => false, 'locked' => false],
+            ],
+        ];
     }
 }

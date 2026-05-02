@@ -38,26 +38,47 @@ class get_thread extends external_api {
         return new external_function_parameters([
             'name' => new external_value(PARAM_TEXT, 'Thread name as written in the filter token'),
             'contextid' => new external_value(PARAM_INT, 'Context id where the filter is applied'),
+            'anonymous' => new external_value(
+                PARAM_BOOL,
+                'Anonymous keyword present on the filter token',
+                VALUE_DEFAULT,
+                false
+            ),
+            'locked' => new external_value(
+                PARAM_BOOL,
+                'Locked keyword present on the filter token',
+                VALUE_DEFAULT,
+                false
+            ),
         ]);
     }
 
     /**
-     * Initialise / return a thread for the current viewer.
+     * Initialise / return a thread for the current viewer, syncing
+     * the thread's anonymous/locked flags to the values on the filter token.
      *
      * @param string $name
      * @param int $contextid
+     * @param bool $anonymous
+     * @param bool $locked
      * @return array
      */
-    public static function execute(string $name, int $contextid): array {
+    public static function execute(string $name, int $contextid, bool $anonymous = false, bool $locked = false): array {
         $params = self::validate_parameters(self::execute_parameters(), [
             'name' => $name,
             'contextid' => $contextid,
+            'anonymous' => $anonymous,
+            'locked' => $locked,
         ]);
 
         $context = \context::instance_by_id($params['contextid']);
         self::validate_context($context);
 
         $thread = manager::get_or_create_thread($params['name'], $context);
+        $thread = manager::sync_settings_from_token($thread, [
+            'anonymous' => $params['anonymous'],
+            'locked' => $params['locked'],
+        ]);
         return manager::get_thread_view($thread, $context);
     }
 

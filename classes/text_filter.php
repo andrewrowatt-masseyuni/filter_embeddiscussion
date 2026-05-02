@@ -19,8 +19,12 @@ namespace filter_embeddiscussion;
 /**
  * embeddiscussion filter
  *
- * Replaces tokens of the form {embeddeddiscussion:Name of thread} with a
- * skeleton container that the JS module populates asynchronously.
+ * Replaces tokens of the form {embeddeddiscussion:Name of thread[,keyword...]}
+ * with a skeleton container that the JS module populates asynchronously.
+ *
+ * Optional trailing keywords (case-insensitive, any order):
+ *   - lock | locked     - the thread is locked (no new posts or edits).
+ *   - anon | anonymous  - student posts are shown with anonymous handles.
  *
  * @package    filter_embeddiscussion
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
@@ -54,8 +58,8 @@ class text_filter extends \core_filters\text_filter {
         $contextid = $this->context->id;
 
         $text = preg_replace_callback(self::PATTERN, function ($matches) use ($contextid) {
-            $name = trim($matches[1]);
-            if ($name === '') {
+            $parsed = self::parse_token_body($matches[1]);
+            if ($parsed['name'] === '') {
                 return $matches[0];
             }
             $uid = uniqid('embeddisc_', true);
@@ -63,7 +67,9 @@ class text_filter extends \core_filters\text_filter {
                 'class' => 'filter-embeddiscussion',
                 'data-region' => 'filter-embeddiscussion',
                 'id' => $uid,
-                'data-thread-name' => $name,
+                'data-thread-name' => $parsed['name'],
+                'data-anonymous' => $parsed['anonymous'] ? '1' : '0',
+                'data-locked' => $parsed['locked'] ? '1' : '0',
                 'data-contextid' => $contextid,
             ];
             $skeleton = \html_writer::tag(
@@ -88,5 +94,51 @@ class text_filter extends \core_filters\text_filter {
         }
 
         return $text;
+    }
+
+    /**
+     * Parse the body of an embeddiscussion token into a name and trailing keywords.
+     *
+     * The body is split on commas. Trailing parts that match a recognised keyword
+     * (lock/locked/anon/anonymous, case-insensitive) or are empty are stripped
+     * from the right; the remaining parts are rejoined with ", " to form the name.
+     * Spaces around delimiters are trimmed; keyword order is unimportant.
+     *
+     * @param string $body the text between "embeddeddiscussion:" and "}"
+     * @return array{name: string, anonymous: bool, locked: bool}
+     */
+    public static function parse_token_body(string $body): array {
+        $anonymous = false;
+        $locked = false;
+
+        if (strpos($body, ',') === false) {
+            return ['name' => trim($body), 'anonymous' => false, 'locked' => false];
+        }
+
+        $parts = array_map('trim', explode(',', $body));
+
+        // Strip trailing empties and recognised keywords from the right.
+        while (!empty($parts)) {
+            $tail = end($parts);
+            if ($tail === '') {
+                array_pop($parts);
+                continue;
+            }
+            $key = strtolower($tail);
+            if ($key === 'lock' || $key === 'locked') {
+                $locked = true;
+                array_pop($parts);
+                continue;
+            }
+            if ($key === 'anon' || $key === 'anonymous') {
+                $anonymous = true;
+                array_pop($parts);
+                continue;
+            }
+            break;
+        }
+
+        $name = trim(implode(', ', $parts));
+        return ['name' => $name, 'anonymous' => $anonymous, 'locked' => $locked];
     }
 }
