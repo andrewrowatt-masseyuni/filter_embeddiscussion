@@ -70,14 +70,30 @@
 /* --- Composer ------------------------------------------------------------ */
 .embeddisc-composer {
     margin: 1rem 0 0.5rem;
+
+    .ql-container {
+        font-family: inherit;
+        font-size: inherit;
+
+        .ql-editor {
+            p {
+                margin-bottom: 1rem; /* Snap default */
+            }
+        }
+    }
 }
 .embeddisc-composer-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.75rem;
 }
-.embeddisc-composer-trigger {
+.embeddisc-composer-main {
     flex: 1 1 auto;
+    min-width: 0;
+}
+.embeddisc-composer-trigger {
+    display: block;
+    width: 100%;
     text-align: left;
     padding: 0.6rem 1rem;
     border: 1px solid #cfd2d6;
@@ -273,7 +289,7 @@
 
         .ql-editor {
             p {
-                margin: 1rem; /* Snap default */
+                margin-bottom: 1rem; /* Snap default */
             }
         }
     }

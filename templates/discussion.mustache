@@ -73,21 +73,23 @@
   {{/locked}}
 
   <div class="embeddisc-composer" data-region="composer">
-    <div class="embeddisc-composer-row" data-region="composer-collapsed">
+    <div class="embeddisc-composer-row">
       <div class="embeddisc-post-avatar" data-region="composer-avatar">
         {{#currentuserprofileurl}}<a href="{{currentuserprofileurl}}">{{{currentuseravatar}}}</a>{{/currentuserprofileurl}}
         {{^currentuserprofileurl}}{{{currentuseravatar}}}{{/currentuserprofileurl}}
       </div>
-      <button type="button" class="embeddisc-composer-trigger" data-action="open-composer"
-        {{^canpost}}disabled{{/canpost}}>
-        {{#postcount}}{{#str}}jointhediscussion, filter_embeddiscussion{{/str}}{{/postcount}}{{^postcount}}{{#str}}startthediscussion, filter_embeddiscussion{{/str}}{{/postcount}}
-      </button>
-    </div>
-    <div class="embeddisc-composer-expanded d-none" data-region="composer-expanded">
-      <div class="embeddisc-editor" data-region="editor"></div>
-      <div class="embeddisc-composer-actions">
-        <button type="button" class="btn btn-link" data-action="cancel-compose">{{#str}}cancel, filter_embeddiscussion{{/str}}</button>
-        <button type="button" class="btn btn-primary" data-action="submit-compose">{{#str}}comment, filter_embeddiscussion{{/str}}</button>
+      <div class="embeddisc-composer-main">
+        <button type="button" class="embeddisc-composer-trigger" data-region="composer-collapsed"
+          data-action="open-composer" {{^canpost}}disabled{{/canpost}}>
+          {{#postcount}}{{#str}}jointhediscussion, filter_embeddiscussion{{/str}}{{/postcount}}{{^postcount}}{{#str}}startthediscussion, filter_embeddiscussion{{/str}}{{/postcount}}
+        </button>
+        <div class="embeddisc-composer-expanded d-none" data-region="composer-expanded">
+          <div class="embeddisc-editor" data-region="editor"></div>
+          <div class="embeddisc-composer-actions">
+            <button type="button" class="btn btn-link" data-action="cancel-compose">{{#str}}cancel, filter_embeddiscussion{{/str}}</button>
+            <button type="button" class="btn btn-primary" data-action="submit-compose">{{#str}}comment, filter_embeddiscussion{{/str}}</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
