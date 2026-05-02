@@ -23,13 +23,10 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Seeds threads, posts and votes for filter_embeddiscussion tests.
  */
 class filter_embeddiscussion_generator extends component_generator_base {
-
     /**
      * Create a thread.
      *
@@ -139,10 +136,12 @@ class filter_embeddiscussion_generator extends component_generator_base {
 
         $postid = $this->find_post_id($threadrecord->id, $record);
 
-        if ($DB->record_exists('filter_embeddiscussion_vote', [
+        if (
+            $DB->record_exists('filter_embeddiscussion_vote', [
             'postid' => $postid,
             'userid' => $record['userid'],
-        ])) {
+            ])
+        ) {
             $DB->set_field('filter_embeddiscussion_vote', 'vote', $direction, [
                 'postid' => $postid,
                 'userid' => $record['userid'],

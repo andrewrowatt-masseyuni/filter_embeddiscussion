@@ -27,9 +27,9 @@ defined('MOODLE_INTERNAL') || die();
 
 $string['adminpanel'] = 'Discussion settings';
 $string['allposts'] = 'All posts';
+$string['anonymousnotice'] = 'Your posts will be anonymous to other students.';
 $string['anonymousposts'] = 'Anonymous posts';
 $string['anonymousposts_desc'] = 'Students will be assigned a handle (e.g., Curious Ibis).';
-$string['anonymousnotice'] = 'Your posts will be anonymous to other students.';
 $string['befirsttocomment'] = 'Be the first to comment.';
 $string['cancel'] = 'Cancel';
 $string['comment'] = 'Comment';

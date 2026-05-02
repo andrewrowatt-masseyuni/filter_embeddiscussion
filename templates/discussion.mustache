@@ -3,26 +3,45 @@
 
     Top-level discussion shell rendered into the filter placeholder.
 
-    Context variables required:
-      threadid (int)
-      name (string)
-      anonymous (bool)
-      currentuserisanonymous (bool)
-      locked (bool)
-      canpost (bool)
-      canmanagethread (bool)
-      canmanageposts (bool)
-      postcount (int)
-      currentuserid (int)
-      currentuseravatar (string, raw HTML)
-      currentuserprofileurl (string, optional)
+    Classes required for JS:
+    * none
 
-    Example:
-      { "threadid": 7, "name": "Demo", "anonymous": false, "locked": false,
-        "canpost": true, "canmanagethread": false, "canmanageposts": false,
-        "postcount": 0, "currentuserid": 2,
-        "currentuseravatar": "<img class=\"userpicture\" src=\"...\" alt=\"\" />",
-        "currentuserprofileurl": "https://example.com/user/profile.php?id=2" }
+    Data attributes required for JS:
+    * data-region="embeddisc-root"
+    * data-threadid
+    * data-anonymous
+    * data-locked
+
+    Context variables required for this template:
+    * threadid (int)
+    * name (string)
+    * anonymous (bool)
+    * currentuserisanonymous (bool)
+    * locked (bool)
+    * canpost (bool)
+    * canmanagethread (bool)
+    * canmanageposts (bool)
+    * postcount (int)
+    * currentuserid (int)
+    * currentuseravatar (string, raw HTML)
+    * currentuserprofileurl (string, optional)
+
+    Example context (json):
+    {
+        "threadid": 7,
+        "name": "Demo",
+        "anonymous": false,
+        "currentuserisanonymous": false,
+        "locked": false,
+        "canpost": true,
+        "canmanagethread": false,
+        "canmanageposts": false,
+        "postcount": 0,
+        "one": false,
+        "currentuserid": 2,
+        "currentuseravatar": "<img class=\"userpicture\" src=\"https://example.com/u.png\" alt=\"\">",
+        "currentuserprofileurl": "https://example.com/user/profile.php?id=2"
+    }
 }}
 <div class="embeddisc" data-region="embeddisc-root" data-threadid="{{threadid}}" data-anonymous="{{#anonymous}}1{{/anonymous}}{{^anonymous}}0{{/anonymous}}" data-locked="{{#locked}}1{{/locked}}{{^locked}}0{{/locked}}">
   {{#canmanagethread}}

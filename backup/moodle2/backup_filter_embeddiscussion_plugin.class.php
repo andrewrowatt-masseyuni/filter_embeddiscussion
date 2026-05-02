@@ -22,14 +22,11 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Backs up embedded discussion threads, posts, votes and anonymous handles
  * attached to a course.
  */
 class backup_filter_embeddiscussion_plugin extends backup_filter_plugin {
-
     /**
      * Course-level backup structure.
      *

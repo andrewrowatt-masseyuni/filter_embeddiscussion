@@ -27,7 +27,6 @@ use Behat\Mink\Exception\ExpectationException;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class behat_filter_embeddiscussion extends behat_base {
-
     /**
      * Wait until the embedded discussion JS has rendered the root.
      *
@@ -165,6 +164,7 @@ JS;
         $this->wait_for_pending_js();
     }
 
+    // phpcs:disable moodle.Files.LineLength.TooLong
     /**
      * Assert the up/down vote count for a post.
      *
@@ -232,5 +232,5 @@ JS;
             );
         }
     }
-
+    // phpcs:enable moodle.Files.LineLength.TooLong
 }

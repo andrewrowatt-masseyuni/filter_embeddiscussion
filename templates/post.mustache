@@ -3,15 +3,62 @@
 
     A single post or reply.
 
-    Required context:
-      id, parentid, content, deleted, edited,
-      timecreated, timecreatediso, timecreatedrelative,
-      authorname, authorrole, isanonymous, profileurl, avatar,
-      votes_up, votes_down, votes_my,
-      canedit, candelete, canreply
+    Classes required for JS:
+    * none
 
-    Optional:
-      indent (int 0..3) — for visual nesting
+    Data attributes required for JS:
+    * data-region="post"
+    * data-postid
+    * data-parentid
+    * data-indent
+
+    Context variables required for this template:
+    * id (int)
+    * parentid (int)
+    * content (string, raw HTML)
+    * deleted (bool)
+    * edited (bool)
+    * timecreated (int, unix timestamp)
+    * timecreatediso (string)
+    * timecreatedrelative (string)
+    * authorname (string)
+    * authorrole (string, optional)
+    * isanonymous (bool)
+    * profileurl (string, optional)
+    * avatar (string, raw HTML)
+    * votes_up (int)
+    * votes_down (int)
+    * votes_my_up (bool)
+    * votes_my_down (bool)
+    * canedit (bool)
+    * candelete (bool)
+    * canreply (bool)
+    * indent (int 0..3, optional) — for visual nesting
+
+    Example context (json):
+    {
+        "id": 42,
+        "parentid": 0,
+        "content": "<p>Hello world</p>",
+        "deleted": false,
+        "edited": false,
+        "timecreated": 1714608000,
+        "timecreatediso": "2024-05-02T00:00:00+00:00",
+        "timecreatedrelative": "2 hours ago",
+        "authorname": "Jane Doe",
+        "authorrole": "Teacher",
+        "isanonymous": false,
+        "profileurl": "https://example.com/user/profile.php?id=2",
+        "avatar": "<img class=\"userpicture\" src=\"https://example.com/u.png\" alt=\"\">",
+        "votes_up": 3,
+        "votes_down": 0,
+        "votes_my_up": false,
+        "votes_my_down": false,
+        "canedit": true,
+        "candelete": true,
+        "canreply": true,
+        "indent": 0
+    }
 }}
 <div class="embeddisc-post {{#deleted}}embeddisc-post-deleted{{/deleted}}" data-region="post" data-postid="{{id}}"
   data-parentid="{{parentid}}" data-indent="{{indent}}">

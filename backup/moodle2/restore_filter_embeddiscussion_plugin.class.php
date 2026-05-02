@@ -22,8 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Restores embedded discussion threads, posts, votes and anonymous handles.
  *
@@ -33,7 +31,6 @@ defined('MOODLE_INTERNAL') || die();
  * does not break the unique index.
  */
 class restore_filter_embeddiscussion_plugin extends restore_filter_plugin {
-
     /**
      * Old post id => old parent post id, deferred until all posts inserted.
      *
@@ -171,10 +168,12 @@ class restore_filter_embeddiscussion_plugin extends restore_filter_plugin {
         $data->postid = $this->get_new_parentid('embeddiscussion_post');
         $data->userid = $this->get_mappingid('user', (int)$data->userid) ?: (int)$data->userid;
 
-        if ($DB->record_exists('filter_embeddiscussion_vote', [
+        if (
+            $DB->record_exists('filter_embeddiscussion_vote', [
             'postid' => $data->postid,
             'userid' => $data->userid,
-        ])) {
+            ])
+        ) {
             return;
         }
 
@@ -195,10 +194,12 @@ class restore_filter_embeddiscussion_plugin extends restore_filter_plugin {
         $data->threadid = $this->get_new_parentid('embeddiscussion_thread');
         $data->userid = $this->get_mappingid('user', (int)$data->userid) ?: (int)$data->userid;
 
-        if ($DB->record_exists('filter_embeddiscussion_handle', [
+        if (
+            $DB->record_exists('filter_embeddiscussion_handle', [
             'threadid' => $data->threadid,
             'userid' => $data->userid,
-        ])) {
+            ])
+        ) {
             return;
         }
 
@@ -250,14 +251,26 @@ class restore_filter_embeddiscussion_plugin extends restore_filter_plugin {
                 'contextid' => $newcontextid,
             ]);
             if ($duplicate) {
-                $DB->set_field('filter_embeddiscussion_post', 'threadid', $duplicate->id,
-                    ['threadid' => $newthreadid]);
-                $DB->set_field('filter_embeddiscussion_handle', 'threadid', $duplicate->id,
-                    ['threadid' => $newthreadid]);
+                $DB->set_field(
+                    'filter_embeddiscussion_post',
+                    'threadid',
+                    $duplicate->id,
+                    ['threadid' => $newthreadid]
+                );
+                $DB->set_field(
+                    'filter_embeddiscussion_handle',
+                    'threadid',
+                    $duplicate->id,
+                    ['threadid' => $newthreadid]
+                );
                 $DB->delete_records('filter_embeddiscussion_thread', ['id' => $newthreadid]);
             } else {
-                $DB->set_field('filter_embeddiscussion_thread', 'contextid',
-                    (int)$newcontextid, ['id' => $newthreadid]);
+                $DB->set_field(
+                    'filter_embeddiscussion_thread',
+                    'contextid',
+                    (int)$newcontextid,
+                    ['id' => $newthreadid]
+                );
             }
         }
         $this->pendingthreadcontexts = [];

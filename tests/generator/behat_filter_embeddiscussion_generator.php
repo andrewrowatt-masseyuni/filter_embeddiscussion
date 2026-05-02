@@ -28,7 +28,6 @@
  * the phpunit data generator above.
  */
 class behat_filter_embeddiscussion_generator extends behat_generator_base {
-
     /**
      * Entities Behat can create for this component.
      *
@@ -41,7 +40,7 @@ class behat_filter_embeddiscussion_generator extends behat_generator_base {
                 'datagenerator' => 'thread',
                 'required' => ['name', 'course'],
                 'switchids' => ['course' => 'courseid'],
-                // 'activity' is passed through as an idnumber/name when present.
+                // The 'activity' value is passed through as an idnumber/name when present.
             ],
             'posts' => [
                 'singular' => 'post',
