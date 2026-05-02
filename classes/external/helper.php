@@ -68,12 +68,15 @@ class helper {
             'threadid' => new external_value(PARAM_INT, 'Thread id'),
             'name' => new external_value(PARAM_TEXT, 'Thread name'),
             'anonymous' => new external_value(PARAM_BOOL, 'Anonymous mode enabled'),
+            'currentuserisanonymous' => new external_value(PARAM_BOOL, 'True if the viewer would be shown anonymously to other students'),
             'locked' => new external_value(PARAM_BOOL, 'Locked'),
             'canpost' => new external_value(PARAM_BOOL, 'Viewer can post'),
             'canmanagethread' => new external_value(PARAM_BOOL, 'Viewer can manage thread settings'),
             'canmanageposts' => new external_value(PARAM_BOOL, 'Viewer can moderate posts'),
             'postcount' => new external_value(PARAM_INT, 'Number of posts'),
             'currentuserid' => new external_value(PARAM_INT, 'Current user id'),
+            'currentuseravatar' => new external_value(PARAM_RAW, 'Current user avatar HTML (img tag)'),
+            'currentuserprofileurl' => new external_value(PARAM_URL, 'Current user profile URL', VALUE_OPTIONAL),
             'posts' => new external_multiple_structure(self::post_structure()),
         ]);
     }

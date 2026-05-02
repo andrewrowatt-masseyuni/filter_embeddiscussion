@@ -89,12 +89,11 @@ export const makeEditor = (mount) => {
         modules: {
             toolbar: [
                 ['bold', 'italic', 'underline', 'strike'],
-                [{background: ['#fff59d', '#a5d6a7', '#90caf9', false]}],
                 ['link', 'blockquote'],
+                ['image'],
                 ['clean'],
             ],
         },
-        formats: ['bold', 'italic', 'underline', 'strike', 'background', 'link', 'blockquote', 'image', 'list'],
         placeholder: '',
     });
 };

@@ -7,17 +7,22 @@
       threadid (int)
       name (string)
       anonymous (bool)
+      currentuserisanonymous (bool)
       locked (bool)
       canpost (bool)
       canmanagethread (bool)
       canmanageposts (bool)
       postcount (int)
       currentuserid (int)
+      currentuseravatar (string, raw HTML)
+      currentuserprofileurl (string, optional)
 
     Example:
       { "threadid": 7, "name": "Demo", "anonymous": false, "locked": false,
         "canpost": true, "canmanagethread": false, "canmanageposts": false,
-        "postcount": 0, "currentuserid": 2 }
+        "postcount": 0, "currentuserid": 2,
+        "currentuseravatar": "<img class=\"userpicture\" src=\"...\" alt=\"\" />",
+        "currentuserprofileurl": "https://example.com/user/profile.php?id=2" }
 }}
 <div class="embeddisc" data-region="embeddisc-root" data-threadid="{{threadid}}" data-anonymous="{{#anonymous}}1{{/anonymous}}{{^anonymous}}0{{/anonymous}}" data-locked="{{#locked}}1{{/locked}}{{^locked}}0{{/locked}}">
   {{#canmanagethread}}
@@ -48,6 +53,13 @@
     </div>
   {{/canmanagethread}}
 
+  {{#currentuserisanonymous}}
+    <div class="embeddisc-anonymous-notice" role="note">
+      <i class="fa fa-info-circle" aria-hidden="true"></i>
+      <span>{{#str}}anonymousnotice, filter_embeddiscussion{{/str}}</span>
+    </div>
+  {{/currentuserisanonymous}}
+
   <div class="embeddisc-header">
     <h4 class="embeddisc-title" data-region="post-count">
       {{#postcount}}{{postcount}}{{/postcount}}{{^postcount}}0{{/postcount}}
@@ -62,7 +74,10 @@
 
   <div class="embeddisc-composer" data-region="composer">
     <div class="embeddisc-composer-row" data-region="composer-collapsed">
-      <div class="embeddisc-composer-avatar" data-region="composer-avatar"></div>
+      <div class="embeddisc-post-avatar" data-region="composer-avatar">
+        {{#currentuserprofileurl}}<a href="{{currentuserprofileurl}}">{{{currentuseravatar}}}</a>{{/currentuserprofileurl}}
+        {{^currentuserprofileurl}}{{{currentuseravatar}}}{{/currentuserprofileurl}}
+      </div>
       <button type="button" class="embeddisc-composer-trigger" data-action="open-composer"
         {{^canpost}}disabled{{/canpost}}>
         {{#postcount}}{{#str}}jointhediscussion, filter_embeddiscussion{{/str}}{{/postcount}}{{^postcount}}{{#str}}startthediscussion, filter_embeddiscussion{{/str}}{{/postcount}}

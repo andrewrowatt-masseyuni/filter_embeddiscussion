@@ -500,10 +500,14 @@ class manager {
             );
         }
 
+        $currentuserisanonymous = (bool)$thread->anonymous
+            && self::user_is_student($context, (int)$USER->id);
+
         return [
             'threadid' => (int)$thread->id,
             'name' => $thread->name,
             'anonymous' => (bool)$thread->anonymous,
+            'currentuserisanonymous' => $currentuserisanonymous,
             'locked' => (bool)$thread->locked,
             'canpost' => $canpost,
             'canmanagethread' => $canmanagethread,
@@ -511,6 +515,10 @@ class manager {
             'postcount' => count($postsout),
             'posts' => $postsout,
             'currentuserid' => (int)$USER->id,
+            'currentuseravatar' => $renderer->user_picture($USER, ['size' => 64, 'link' => false]),
+            'currentuserprofileurl' => isloggedin() && !isguestuser()
+                ? (new \moodle_url('/user/profile.php', ['id' => $USER->id]))->out(false)
+                : '',
         ];
     }
 
@@ -549,6 +557,7 @@ class manager {
         $profileurl = '';
         $avatar = '';
         $rolelabel = '';
+        $isown = $author && ((int)$author->id === (int)$USER->id);
 
         if (!$post->deleted && $author) {
             $isstudent = self::user_is_student($context, (int)$author->id);
@@ -559,7 +568,7 @@ class manager {
                 $isanon = true;
             }
 
-            if ($canviewfullnames || !$isanon) {
+            if ($canviewfullnames || !$isanon || $isown) {
                 $authorname = fullname($author);
                 $profileurl = (new \moodle_url('/user/profile.php', ['id' => $author->id]))->out(false);
                 $avatar = $renderer->user_picture($author, ['size' => 64, 'link' => false]);
@@ -573,7 +582,6 @@ class manager {
 
         $votes = self::vote_summary((int)$post->id, (int)$USER->id);
 
-        $isown = $author && ((int)$author->id === (int)$USER->id);
         $candelete = !$post->deleted && (
             ($isown && $candeleteown) || $candeleteany
         );

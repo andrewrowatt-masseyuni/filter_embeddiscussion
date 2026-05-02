@@ -51,6 +51,21 @@
     border-top: 1px solid #d8d8d8;
     margin: 0.5rem 0 0;
 }
+.embeddisc-anonymous-notice {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #e7f3fb;
+    border: 1px solid #b6dcef;
+    color: #0c5460;
+    border-radius: 4px;
+    padding: 0.4rem 0.6rem;
+    margin: 0 0 0.75rem;
+    font-size: 80%;
+}
+.embeddisc-anonymous-notice .fa {
+    color: #1a73a8;
+}
 
 /* --- Composer ------------------------------------------------------------ */
 .embeddisc-composer {
@@ -60,18 +75,6 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-}
-.embeddisc-composer-avatar {
-    flex: 0 0 auto;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--brand-primary, #0d3d6b);
-    color: #fff;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 .embeddisc-composer-trigger {
     flex: 1 1 auto;
@@ -128,7 +131,7 @@
 }
 .embeddisc-sort-btn.embeddisc-sort-active {
     color: var(--brand-primary, #0d3d6b);
-    font-weight: 600;
+    font-weight: 500;
     border-bottom: 2px solid var(--brand-primary, #0d3d6b);
     padding-bottom: 0.15rem;
 }
@@ -153,14 +156,20 @@
 .embeddisc-post[data-indent="3"] {
     margin-left: 4.5rem;
 }
-.embeddisc-post-avatar {
+.embeddisc .embeddisc-post-avatar {
     flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
 }
-.embeddisc-post-avatar img {
+.embeddisc .embeddisc-post-avatar img,
+.embeddisc .embeddisc-post-avatar .userpicture,
+.embeddisc .embeddisc-post-avatar .userinitials {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
+    margin: 0;
+    font-size: 0.85rem;
 }
 .embeddisc-post-body {
     flex: 1 1 auto;
@@ -174,11 +183,13 @@
 }
 .embeddisc-post-author {
     color: var(--brand-primary, #0d3d6b);
-    font-weight: 600;
+    font-weight: 400;
     text-decoration: none;
 }
 .embeddisc-post-author:hover {
+    /*
     text-decoration: underline;
+    */
 }
 .embeddisc-post-role {
     font-size: 0.8rem;
@@ -193,12 +204,19 @@
     margin: 0.1rem 0 0.5rem;
 }
 .embeddisc-post-time-relative {
+    /*
     cursor: help;
     border-bottom: 1px dotted #aaa;
+    */
 }
 .embeddisc-post-edited {
-    margin-left: 0.5rem;
-    font-style: italic;
+    font-size: 0.6rem;
+    font-weight: 300;
+    color: #666;
+    background: #f0f1f3;
+    border-radius: 4px;
+    padding: 0.05rem 0.4rem;
+    text-transform: uppercase;
 }
 .embeddisc-post-content {
     line-height: 1.5;
@@ -248,6 +266,17 @@
     border-radius: 8px;
     padding: 0.25rem;
     background: #fff;
+
+    .ql-container {
+        font-family: inherit;
+        font-size: inherit;
+
+        .ql-editor {
+            p {
+                margin: 1rem; /* Snap default */
+            }
+        }
+    }
 }
 .embeddisc-inline-composer .ql-toolbar.ql-snow,
 .embeddisc-inline-composer .ql-container.ql-snow {
