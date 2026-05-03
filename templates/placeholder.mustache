@@ -14,28 +14,22 @@
 
     Data attributes required for JS:
     * data-region="filter-embeddiscussion"
-    * data-thread-name
-    * data-anonymous
-    * data-locked
+    * data-threadid
     * data-contextid
 
     Context variables required for this template:
     * uid (string)
-    * threadname (string)
-    * anonymous (string, '1' or '0')
-    * locked (string, '1' or '0')
+    * threadid (int)
     * contextid (int)
 
     Example context (json):
     {
         "uid": "embeddisc_1234",
-        "threadname": "Demo",
-        "anonymous": "0",
-        "locked": "0",
+        "threadid": 7,
         "contextid": 42
     }
 }}
-<div class="filter-embeddiscussion" data-region="filter-embeddiscussion" id="{{uid}}" data-thread-name="{{threadname}}" data-anonymous="{{anonymous}}" data-locked="{{locked}}" data-contextid="{{contextid}}">
+<div class="filter-embeddiscussion" data-region="filter-embeddiscussion" id="{{uid}}" data-threadid="{{threadid}}" data-contextid="{{contextid}}">
   <div class="embeddisc embeddisc-skeleton" aria-hidden="true">
     <div class="embeddisc-header">
       <div class="embeddisc-header-row">

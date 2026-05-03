@@ -22,7 +22,11 @@ use core_external\external_value;
 use filter_embeddiscussion\manager;
 
 /**
- * Initialise (if necessary) and return an embedded discussion thread.
+ * Return an embedded discussion thread by id.
+ *
+ * The thread is created (and its anonymous/locked flags synced from the
+ * filter token) server-side by the filter at render time, so this endpoint
+ * only needs the thread id — never trust thread settings from the client.
  *
  * @package    filter_embeddiscussion
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
@@ -36,49 +40,33 @@ class get_thread extends external_api {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-            'name' => new external_value(PARAM_TEXT, 'Thread name as written in the filter token'),
-            'contextid' => new external_value(PARAM_INT, 'Context id where the filter is applied'),
-            'anonymous' => new external_value(
-                PARAM_BOOL,
-                'Anonymous keyword present on the filter token',
-                VALUE_DEFAULT,
-                false
-            ),
-            'locked' => new external_value(
-                PARAM_BOOL,
-                'Locked keyword present on the filter token',
-                VALUE_DEFAULT,
-                false
-            ),
+            'threadid' => new external_value(PARAM_INT, 'Thread id'),
         ]);
     }
 
     /**
-     * Initialise / return a thread for the current viewer, syncing
-     * the thread's anonymous/locked flags to the values on the filter token.
+     * Return the per-viewer thread payload.
      *
-     * @param string $name
-     * @param int $contextid
-     * @param bool $anonymous
-     * @param bool $locked
+     * @param int $threadid
      * @return array
      */
-    public static function execute(string $name, int $contextid, bool $anonymous = false, bool $locked = false): array {
+    public static function execute(int $threadid): array {
+        global $DB;
+
         $params = self::validate_parameters(self::execute_parameters(), [
-            'name' => $name,
-            'contextid' => $contextid,
-            'anonymous' => $anonymous,
-            'locked' => $locked,
+            'threadid' => $threadid,
         ]);
 
-        $context = \context::instance_by_id($params['contextid']);
+        $thread = $DB->get_record(
+            'filter_embeddiscussion_thread',
+            ['id' => $params['threadid']],
+            '*',
+            MUST_EXIST
+        );
+
+        $context = \context::instance_by_id((int)$thread->contextid);
         self::validate_context($context);
 
-        $thread = manager::get_or_create_thread($params['name'], $context);
-        $thread = manager::sync_settings_from_token($thread, [
-            'anonymous' => $params['anonymous'],
-            'locked' => $params['locked'],
-        ]);
         return manager::get_thread_view($thread, $context);
     }
 

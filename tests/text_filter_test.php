@@ -39,10 +39,15 @@ final class text_filter_test extends \advanced_testcase {
         $context = \context_system::instance();
         $filter = new text_filter($context, []);
         $output = $filter->filter('Before {embeddeddiscussion:My thread} after');
+        $thread = manager::find_thread('My thread', $context->id);
+        $this->assertNotNull($thread);
+        $this->assertSame(0, (int)$thread->anonymous);
+        $this->assertSame(0, (int)$thread->locked);
         $this->assertStringContainsString('data-region="filter-embeddiscussion"', $output);
-        $this->assertStringContainsString('data-thread-name="My thread"', $output);
-        $this->assertStringContainsString('data-anonymous="0"', $output);
-        $this->assertStringContainsString('data-locked="0"', $output);
+        $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
+        $this->assertStringNotContainsString('data-thread-name', $output);
+        $this->assertStringNotContainsString('data-anonymous', $output);
+        $this->assertStringNotContainsString('data-locked', $output);
         $this->assertStringContainsString('Before', $output);
         $this->assertStringContainsString('after', $output);
     }
@@ -52,7 +57,9 @@ final class text_filter_test extends \advanced_testcase {
         $context = \context_system::instance();
         $filter = new text_filter($context, []);
         $output = $filter->filter('{embeddiscussion:Alt}');
-        $this->assertStringContainsString('data-thread-name="Alt"', $output);
+        $thread = manager::find_thread('Alt', $context->id);
+        $this->assertNotNull($thread);
+        $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
     }
 
     public function test_filter_handles_multiple_tokens(): void {
@@ -61,8 +68,12 @@ final class text_filter_test extends \advanced_testcase {
         $filter = new text_filter($context, []);
         $output = $filter->filter('{embeddeddiscussion:A} mid {embeddeddiscussion:B}');
         $this->assertSame(2, substr_count($output, 'data-region="filter-embeddiscussion"'));
-        $this->assertStringContainsString('data-thread-name="A"', $output);
-        $this->assertStringContainsString('data-thread-name="B"', $output);
+        $threada = manager::find_thread('A', $context->id);
+        $threadb = manager::find_thread('B', $context->id);
+        $this->assertNotNull($threada);
+        $this->assertNotNull($threadb);
+        $this->assertStringContainsString('data-threadid="' . (int)$threada->id . '"', $output);
+        $this->assertStringContainsString('data-threadid="' . (int)$threadb->id . '"', $output);
     }
 
     public function test_filter_ignores_empty_name(): void {
@@ -73,14 +84,19 @@ final class text_filter_test extends \advanced_testcase {
         $this->assertSame($input, $filter->filter($input));
     }
 
-    public function test_filter_emits_anonymous_and_locked_data_attributes(): void {
+    public function test_filter_persists_anonymous_and_locked_settings_server_side(): void {
         $this->resetAfterTest();
         $context = \context_system::instance();
         $filter = new text_filter($context, []);
         $output = $filter->filter('{embeddeddiscussion:Demo,anonymous,locked}');
-        $this->assertStringContainsString('data-thread-name="Demo"', $output);
-        $this->assertStringContainsString('data-anonymous="1"', $output);
-        $this->assertStringContainsString('data-locked="1"', $output);
+        $thread = manager::find_thread('Demo', $context->id);
+        $this->assertNotNull($thread);
+        $this->assertSame(1, (int)$thread->anonymous);
+        $this->assertSame(1, (int)$thread->locked);
+        // The browser must only learn the thread id; flags are authoritative on the server.
+        $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
+        $this->assertStringNotContainsString('data-anonymous', $output);
+        $this->assertStringNotContainsString('data-locked', $output);
     }
 
     /**
@@ -213,8 +229,10 @@ final class text_filter_test extends \advanced_testcase {
         $context = \context_system::instance();
         $filter = new text_filter($context, []);
         $output = $filter->filter('Before [[filter_disqus]] after');
+        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $this->assertNotNull($thread);
         $this->assertStringContainsString('data-region="filter-embeddiscussion"', $output);
-        $this->assertStringContainsString('data-thread-name="Course: Course 1"', $output);
+        $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
     }
 
     public function test_filter_renders_legacy_disqus_segment_token(): void {
@@ -226,7 +244,9 @@ final class text_filter_test extends \advanced_testcase {
         $context = \context_system::instance();
         $filter = new text_filter($context, []);
         $output = $filter->filter('[[filter_disqus:book-23]]');
-        $this->assertStringContainsString('data-thread-name="Course: Course 1 (book-23)"', $output);
+        $thread = manager::find_thread('Course: Course 1 (book-23)', $context->id);
+        $this->assertNotNull($thread);
+        $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
     }
 
     public function test_filter_renders_legacy_comments_token(): void {
@@ -238,7 +258,9 @@ final class text_filter_test extends \advanced_testcase {
         $context = \context_system::instance();
         $filter = new text_filter($context, []);
         $output = $filter->filter('{comments}');
-        $this->assertStringContainsString('data-thread-name="Course: Course 1"', $output);
+        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $this->assertNotNull($thread);
+        $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
     }
 
     /**
