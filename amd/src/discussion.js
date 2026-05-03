@@ -30,20 +30,47 @@ import {startTicker, format} from 'filter_embeddiscussion/timeago';
 
 const SEL_ROOT = '[data-region="filter-embeddiscussion"]';
 const MAX_VISUAL_INDENT = 3;
+// Start fetching when the placeholder is within ~one viewport of the scroll position.
+const LAZY_ROOT_MARGIN = '100px 0px';
 
 const initialised = new WeakSet();
 
+let lazyObserver = null;
+
+const getLazyObserver = () => {
+    if (lazyObserver || typeof IntersectionObserver === 'undefined') {
+        return lazyObserver;
+    }
+    lazyObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) {
+                return;
+            }
+            observer.unobserve(entry.target);
+            const d = new Discussion(entry.target);
+            d.load();
+        });
+    }, {rootMargin: LAZY_ROOT_MARGIN});
+    return lazyObserver;
+};
+
 /**
- * Public entry point. Bootstraps every embedded discussion placeholder on the page.
+ * Public entry point. Bootstraps every embedded discussion placeholder on the page,
+ * deferring the thread fetch until each placeholder is near the viewport.
  */
 export const init = () => {
+    const observer = getLazyObserver();
     document.querySelectorAll(SEL_ROOT).forEach(el => {
         if (initialised.has(el)) {
             return;
         }
         initialised.add(el);
-        const d = new Discussion(el);
-        d.load();
+        if (observer) {
+            observer.observe(el);
+        } else {
+            // Fallback for environments without IntersectionObserver.
+            new Discussion(el).load();
+        }
     });
     startTicker();
 };
@@ -53,7 +80,7 @@ class Discussion {
         this.root = root;
         this.threadid = parseInt(root.dataset.threadid, 10);
         this.contextid = parseInt(root.dataset.contextid, 10);
-        this.thread = null; // server payload.
+        this.thread = null; // Server payload.
         this.sortMode = 'oldest';
         this.composerEditor = null;
         this.activeReply = null; // {parentId, container, editor}.
@@ -93,8 +120,8 @@ class Discussion {
         const posts = this.thread.posts.map(p => ({
             ...p,
             indent: 0,
-            votes_my_up: p.votes_my === 1,
-            votes_my_down: p.votes_my === -1,
+            votesMyUp: p.votes_my === 1,
+            votesMyDown: p.votes_my === -1,
         }));
 
         // Sort top-level by chosen mode; replies always chronological.
@@ -156,14 +183,14 @@ class Discussion {
         }
         const action = target.dataset.action;
         switch (action) {
-            case 'open-composer': return this.openComposer();
-            case 'cancel-compose': return this.cancelComposer();
-            case 'submit-compose': return this.submitComposer();
-            case 'sort': return this.changeSort(target.dataset.sort);
-            case 'reply': return this.openReply(target);
-            case 'edit': return this.openEdit(target);
-            case 'delete': return this.confirmDelete(target);
-            case 'vote': return this.vote(target);
+            case 'open-composer': this.openComposer(); break;
+            case 'cancel-compose': this.cancelComposer(); break;
+            case 'submit-compose': this.submitComposer(); break;
+            case 'sort': this.changeSort(target.dataset.sort); break;
+            case 'reply': this.openReply(target); break;
+            case 'edit': this.openEdit(target); break;
+            case 'delete': this.confirmDelete(target); break;
+            case 'vote': this.vote(target); break;
             default:
         }
     }
@@ -408,9 +435,11 @@ class Discussion {
             }])[0];
             // Update local model and the post DOM in place.
             if (post) {
+                /* eslint-disable camelcase */
                 post.votes_up = result.votes_up;
                 post.votes_down = result.votes_down;
                 post.votes_my = result.votes_my;
+                /* eslint-enable camelcase */
             }
             postEl.querySelector('[data-region="votes-up"]').textContent = result.votes_up;
             postEl.querySelector('[data-region="votes-down"]').textContent = result.votes_down;
