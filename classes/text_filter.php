@@ -90,7 +90,19 @@ class text_filter extends \core_filters\text_filter {
 
         $context = $this->context;
 
-        $text = preg_replace_callback(self::PATTERN, function ($matches) use ($context, $OUTPUT) {
+        // Capture the host page's URL so threads can be linked back to where they live.
+        // Skip if the page never called set_url(): the magic getter would otherwise emit a
+        // DEBUG_DEVELOPER notice and fall back to a guessed $FULLME we don't want to store.
+        $pageurl = null;
+        try {
+            if (isset($PAGE) && is_object($PAGE) && $PAGE->has_set_url()) {
+                $pageurl = $PAGE->url->out(false);
+            }
+        } catch (\Throwable $e) {
+            $pageurl = null;
+        }
+
+        $text = preg_replace_callback(self::PATTERN, function ($matches) use ($context, $OUTPUT, $pageurl) {
             $captured = $matches[1] ?? '';
             // A leading ':' introduces an explicit name; a leading ',' starts the keyword
             // list with no name. Strip a leading ':' so parse_token_body sees only the body;
@@ -114,7 +126,7 @@ class text_filter extends \core_filters\text_filter {
             // Resolve the thread server-side so the browser only learns the thread id.
             // anonymous/locked are token-authored settings — never trust them from the client.
             try {
-                $thread = manager::get_or_create_thread($parsed['name'], $context);
+                $thread = manager::get_or_create_thread($parsed['name'], $context, $pageurl);
                 $thread = manager::sync_settings_from_token($thread, [
                     'anonymous' => $parsed['anonymous'],
                     'locked' => $parsed['locked'],
@@ -123,7 +135,7 @@ class text_filter extends \core_filters\text_filter {
                 return $matches[0];
             }
             return $OUTPUT->render_from_template('filter_embeddiscussion/placeholder', [
-                'uid' => uniqid('embeddisc_', true),
+                'uid' => manager::get_thread_uid($thread->id, $context->id),
                 'threadid' => (int)$thread->id,
                 'contextid' => $context->id,
             ]);

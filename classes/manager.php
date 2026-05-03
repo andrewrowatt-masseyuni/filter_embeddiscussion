@@ -53,9 +53,15 @@ class manager {
      *
      * @param string $name
      * @param \context $context
+     * @param string|null $pageurl URL of the page hosting the thread; refreshed on each
+     *                             call so the stored value tracks the current location.
      * @return \stdClass
      */
-    public static function get_or_create_thread(string $name, \context $context): \stdClass {
+    public static function get_or_create_thread(
+        string $name,
+        \context $context,
+        ?string $pageurl = null
+    ): \stdClass {
         global $DB, $USER;
 
         $name = trim($name);
@@ -65,6 +71,11 @@ class manager {
 
         $existing = self::find_thread($name, $context->id);
         if ($existing) {
+            if ($pageurl !== null && $pageurl !== '' && (string)($existing->pageurl ?? '') !== $pageurl) {
+                $existing->pageurl = $pageurl;
+                $existing->timemodified = time();
+                $DB->update_record('filter_embeddiscussion_thread', $existing);
+            }
             return $existing;
         }
 
@@ -86,6 +97,7 @@ class manager {
             'anonymous' => 0,
             'locked' => 0,
             'handleoffset' => random_int(0, $masterlistsize - 1),
+            'pageurl' => ($pageurl !== null && $pageurl !== '') ? $pageurl : null,
             'timecreated' => $now,
             'timemodified' => $now,
         ];
@@ -610,5 +622,16 @@ class manager {
             'candelete' => $candelete,
             'canreply' => has_capability('filter/embeddiscussion:createpost', $context) && !$thread->locked,
         ];
+    }
+
+    /**
+     * Return a unique identifier for this thread to use in HTML as an id
+     *
+     * @param mixed $threadid
+     * @param mixed $contextid
+     * @return string
+     */
+    public static function get_thread_uid($threadid, $contextid): string {
+        return "embeddisc_$threadid-$contextid";
     }
 }
