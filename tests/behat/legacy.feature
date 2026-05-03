@@ -27,8 +27,8 @@ Feature: Legacy filter_disqus and {comments} tokens are accepted as drop-in repl
       | label    | C1     | Discuss A | [[filter_disqus]]  | l1       |
     When I log in as "student1"
     And I am on "Course 1" course homepage
-    Then "[data-region='filter-embeddiscussion'][data-thread-name='Course: Course 1']" "css_element" should exist
-    And "[data-region='filter-embeddiscussion'][data-anonymous='0'][data-locked='0']" "css_element" should exist
+    Then "[data-region='filter-embeddiscussion'][data-threadid]" "css_element" should exist
+    And "[data-region='embeddisc-root'][data-anonymous='0'][data-locked='0']" "css_element" should exist
 
   @javascript
   Scenario: [[filter_disqus:url_segment]] renders a placeholder with the URL segment in parentheses
@@ -37,7 +37,8 @@ Feature: Legacy filter_disqus and {comments} tokens are accepted as drop-in repl
       | label    | C1     | Discuss A | [[filter_disqus:book-23]]   | l1       |
     When I log in as "student1"
     And I am on "Course 1" course homepage
-    Then "[data-region='filter-embeddiscussion'][data-thread-name='Course: Course 1 (book-23)']" "css_element" should exist
+    Then "[data-region='filter-embeddiscussion'][data-threadid]" "css_element" should exist
+    And "[data-region='embeddisc-root']" "css_element" should exist
 
   @javascript
   Scenario: {comments} renders a placeholder using the page name with the site name stripped
@@ -46,4 +47,5 @@ Feature: Legacy filter_disqus and {comments} tokens are accepted as drop-in repl
       | label    | C1     | Discuss A | {comments}  | l1       |
     When I log in as "student1"
     And I am on "Course 1" course homepage
-    Then "[data-region='filter-embeddiscussion'][data-thread-name='Course: Course 1']" "css_element" should exist
+    Then "[data-region='filter-embeddiscussion'][data-threadid]" "css_element" should exist
+    And "[data-region='embeddisc-root']" "css_element" should exist

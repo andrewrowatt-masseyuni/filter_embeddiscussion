@@ -30,8 +30,8 @@ Feature: Embedded discussion filter
     And I should see "filter_embeddiscussion"
 
   @javascript
-  Scenario: Filter renders the skeleton placeholder for the token
+  Scenario: Filter renders the placeholder and the JS hydrates the discussion thread
     Given I log in as "student1"
     And I am on "Course 1" course homepage
-    Then "[data-region='filter-embeddiscussion'][data-thread-name='Course 1 Demo']" "css_element" should exist
-    And "[data-region='filter-embeddiscussion'][data-anonymous='0'][data-locked='0']" "css_element" should exist
+    Then "[data-region='filter-embeddiscussion'][data-threadid]" "css_element" should exist
+    And "[data-region='embeddisc-root'][data-anonymous='0'][data-locked='0']" "css_element" should exist

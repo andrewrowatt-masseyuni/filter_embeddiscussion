@@ -27,8 +27,8 @@ defined('MOODLE_INTERNAL') || die();
 $functions = [
     'filter_embeddiscussion_get_thread' => [
         'classname' => 'filter_embeddiscussion\external\get_thread',
-        'description' => 'Initialise (if needed) and load an embedded discussion thread.',
-        'type' => 'write',
+        'description' => 'Load an embedded discussion thread by id.',
+        'type' => 'read',
         'ajax' => true,
         'loginrequired' => true,
     ],

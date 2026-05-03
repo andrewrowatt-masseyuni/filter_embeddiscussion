@@ -75,19 +75,28 @@ class text_filter extends \core_filters\text_filter {
             return $text;
         }
 
-        $contextid = $this->context->id;
+        $context = $this->context;
 
-        $text = preg_replace_callback(self::PATTERN, function ($matches) use ($contextid, $OUTPUT) {
+        $text = preg_replace_callback(self::PATTERN, function ($matches) use ($context, $OUTPUT) {
             $parsed = self::parse_token_body($matches[1]);
             if ($parsed['name'] === '') {
                 return $matches[0];
             }
+            // Resolve the thread server-side so the browser only learns the thread id.
+            // anonymous/locked are token-authored settings — never trust them from the client.
+            try {
+                $thread = manager::get_or_create_thread($parsed['name'], $context);
+                $thread = manager::sync_settings_from_token($thread, [
+                    'anonymous' => $parsed['anonymous'],
+                    'locked' => $parsed['locked'],
+                ]);
+            } catch (\Throwable $e) {
+                return $matches[0];
+            }
             return $OUTPUT->render_from_template('filter_embeddiscussion/placeholder', [
                 'uid' => uniqid('embeddisc_', true),
-                'threadname' => $parsed['name'],
-                'anonymous' => $parsed['anonymous'] ? '1' : '0',
-                'locked' => $parsed['locked'] ? '1' : '0',
-                'contextid' => $contextid,
+                'threadid' => (int)$thread->id,
+                'contextid' => $context->id,
             ]);
         }, $text);
 

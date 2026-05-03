@@ -51,10 +51,8 @@ export const init = () => {
 class Discussion {
     constructor(root) {
         this.root = root;
-        this.threadName = root.dataset.threadName;
+        this.threadid = parseInt(root.dataset.threadid, 10);
         this.contextid = parseInt(root.dataset.contextid, 10);
-        this.anonymous = root.dataset.anonymous === '1';
-        this.locked = root.dataset.locked === '1';
         this.thread = null; // server payload.
         this.sortMode = 'oldest';
         this.composerEditor = null;
@@ -66,10 +64,7 @@ class Discussion {
         Ajax.call([{
             methodname: 'filter_embeddiscussion_get_thread',
             args: {
-                name: this.threadName,
-                contextid: this.contextid,
-                anonymous: this.anonymous,
-                locked: this.locked,
+                threadid: this.threadid,
             },
         }])[0].then(data => this.render(data))
             .catch(Notification.exception);
