@@ -634,4 +634,174 @@ class manager {
     public static function get_thread_uid($threadid, $contextid): string {
         return "embeddisc_$threadid-$contextid";
     }
+
+    /**
+     * Build the dashboard payload: posts created since the user's last visit
+     * to the course, grouped by thread, scoped to threads in modules the user
+     * can see (cm_info::uservisible enforces restrict-access conditions).
+     *
+     * @param int $courseid
+     * @param int $userid viewing user
+     * @return array
+     */
+    public static function get_dashboard_view(int $courseid, int $userid): array {
+        global $DB, $PAGE;
+
+        $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
+        $modinfo = get_fast_modinfo($course, $userid);
+
+        $lastaccess = (int)($DB->get_field('user_lastaccess', 'timeaccess', [
+            'userid' => $userid,
+            'courseid' => $courseid,
+        ]) ?: 0);
+
+        $contextids = [];
+        foreach ($modinfo->cms as $cm) {
+            if ($cm->uservisible) {
+                $contextids[] = (int)$cm->context->id;
+            }
+        }
+
+        if (empty($contextids)) {
+            return self::empty_dashboard_payload($lastaccess);
+        }
+
+        $renderer = $PAGE->get_renderer('core');
+
+        [$insql, $inparams] = $DB->get_in_or_equal($contextids, SQL_PARAMS_NAMED, 'ctx');
+        $threads = $DB->get_records_select(
+            'filter_embeddiscussion_thread',
+            "contextid $insql",
+            $inparams,
+            'name ASC'
+        );
+
+        $threadsout = [];
+        $totalposts = 0;
+        foreach ($threads as $thread) {
+            $entry = self::build_dashboard_thread_entry($thread, $lastaccess, $renderer);
+            if ($entry === null) {
+                continue;
+            }
+            $totalposts += $entry['postcount'];
+            $threadsout[] = $entry;
+        }
+
+        return self::dashboard_payload($lastaccess, $threadsout, $totalposts);
+    }
+
+    /**
+     * Build the per-thread payload of new posts since $lastaccess, or null if
+     * the thread has no qualifying posts.
+     *
+     * @param \stdClass $thread
+     * @param int $lastaccess
+     * @param \renderer_base $renderer
+     * @return array|null
+     */
+    protected static function build_dashboard_thread_entry(
+        \stdClass $thread,
+        int $lastaccess,
+        \renderer_base $renderer
+    ): ?array {
+        global $DB;
+
+        $posts = $DB->get_records_select(
+            'filter_embeddiscussion_post',
+            'threadid = :tid AND deleted = 0 AND timecreated > :since',
+            ['tid' => (int)$thread->id, 'since' => $lastaccess],
+            'timecreated DESC'
+        );
+        if (empty($posts)) {
+            return null;
+        }
+
+        $context = \context::instance_by_id((int)$thread->contextid);
+        $canviewfullnames = has_capability('moodle/site:viewfullnames', $context);
+        $pageurl = (string)($thread->pageurl ?? '');
+
+        $postsout = [];
+        foreach ($posts as $p) {
+            $view = self::build_post_view(
+                $p,
+                $thread,
+                $context,
+                $canviewfullnames,
+                false,
+                false,
+                false,
+                false,
+                $renderer
+            );
+            $postsout[] = self::dashboard_post_from_view($view, (int)$p->id, $pageurl);
+        }
+        return [
+            'threadid' => (int)$thread->id,
+            'name' => $thread->name,
+            'pageurl' => $pageurl,
+            'postcount' => count($postsout),
+            'posts' => $postsout,
+        ];
+    }
+
+    /**
+     * Empty-state payload used when the user has no visible modules in the
+     * course or no new posts.
+     *
+     * @param int $lastaccess
+     * @return array
+     */
+    protected static function empty_dashboard_payload(int $lastaccess): array {
+        return self::dashboard_payload($lastaccess, [], 0);
+    }
+
+    /**
+     * Build the dashboard payload envelope around the per-thread entries.
+     *
+     * @param int $lastaccess
+     * @param array $threads
+     * @param int $totalposts
+     * @return array
+     */
+    protected static function dashboard_payload(int $lastaccess, array $threads, int $totalposts): array {
+        return [
+            'lastaccess' => $lastaccess,
+            'lastaccessiso' => $lastaccess
+                ? userdate($lastaccess, get_string('strftimedatetime', 'langconfig'))
+                : '',
+            'lastaccessrelative' => $lastaccess
+                ? format_time(time() - $lastaccess)
+                : '',
+            'hasitems' => $totalposts > 0,
+            'neverbefore' => ($lastaccess === 0),
+            'threadcount' => count($threads),
+            'postcount' => $totalposts,
+            'threads' => $threads,
+        ];
+    }
+
+    /**
+     * Convert the rich per-post view payload returned by build_post_view into
+     * the lighter shape the dashboard expects: drops the interactive fields
+     * (votes, parentid, can-edit/delete/reply) and adds a posturl that deep-
+     * links back to the post in its hosting page.
+     *
+     * @param array $view a row produced by self::build_post_view
+     * @param int $postid the post's id (used to compose the anchor)
+     * @param string $pageurl the host page URL stored on the thread
+     * @return array
+     */
+    protected static function dashboard_post_from_view(array $view, int $postid, string $pageurl): array {
+        unset(
+            $view['parentid'],
+            $view['votes_up'],
+            $view['votes_down'],
+            $view['votes_my'],
+            $view['canedit'],
+            $view['candelete'],
+            $view['canreply']
+        );
+        $view['posturl'] = ($pageurl !== '') ? $pageurl . '#embeddisc-post-' . $postid : '';
+        return $view;
+    }
 }

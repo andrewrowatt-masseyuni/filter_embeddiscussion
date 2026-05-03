@@ -1,0 +1,121 @@
+{{!
+    @template filter_embeddiscussion/dashboard
+
+    Course-level activity dashboard listing posts created since the user's
+    last visit, grouped by thread. Each post is rendered with the same
+    aesthetic as filter_embeddiscussion/post but with no compose / vote /
+    edit / reply controls and is wrapped in a link back to the post in
+    its hosting page.
+
+    Context variables required for this template:
+    * lastaccess (int)
+    * lastaccessiso (string)
+    * lastaccessrelative (string)
+    * hasitems (bool)
+    * neverbefore (bool)
+    * threadcount (int)
+    * postcount (int)
+    * threads (array of {threadid, name, pageurl, postcount, posts[]})
+
+    Each post in posts[] has:
+    * id (int)
+    * content (string, raw HTML)
+    * deleted (bool)
+    * edited (bool)
+    * timecreated (int)
+    * timecreatediso (string)
+    * timecreatedrelative (string)
+    * authorname (string)
+    * authorrole (string, optional)
+    * isanonymous (bool)
+    * profileurl (string, optional)
+    * avatar (string, raw HTML)
+    * posturl (string, raw)
+
+    Example context (json):
+    {
+        "lastaccess": 1714608000,
+        "lastaccessiso": "2 May 2024, 12:00 PM",
+        "lastaccessrelative": "2 days",
+        "hasitems": true,
+        "neverbefore": false,
+        "threadcount": 2,
+        "postcount": 3,
+        "threads": [
+            {
+                "threadid": 7,
+                "name": "Week 1 reading",
+                "pageurl": "https://example.com/mod/page/view.php?id=10",
+                "postcount": 2,
+                "posts": [
+                    {
+                        "id": 42,
+                        "content": "<p>Hello</p>",
+                        "deleted": false,
+                        "edited": false,
+                        "timecreated": 1714694400,
+                        "timecreatediso": "3 May 2024, 12:00 PM",
+                        "timecreatedrelative": "1 day",
+                        "authorname": "Jane Doe",
+                        "authorrole": "Teacher",
+                        "isanonymous": false,
+                        "profileurl": "https://example.com/user/profile.php?id=2",
+                        "avatar": "<img class=\"userpicture\" src=\"https://example.com/u.png\" alt=\"\">",
+                        "posturl": "https://example.com/mod/page/view.php?id=10#embeddisc-post-42"
+                    }
+                ]
+            }
+        ]
+    }
+}}
+<div class="embeddisc embeddisc-dashboard">
+  <div class="embeddisc-header">
+    <div class="embeddisc-dashboard-since">
+      {{#hasitems}}
+        {{#neverbefore}}
+          {{#str}}dashboard_never, filter_embeddiscussion{{/str}}
+        {{/neverbefore}}
+        {{^neverbefore}}
+          {{#str}}dashboard_since, filter_embeddiscussion, {{lastaccessrelative}}{{/str}}
+        {{/neverbefore}}
+      {{/hasitems}}
+    </div>
+    <hr class="embeddisc-divider">
+  </div>
+
+  {{^hasitems}}
+    <div class="embeddisc-empty embeddisc-dashboard-empty">
+      {{#str}}dashboard_empty, filter_embeddiscussion{{/str}}
+    </div>
+  {{/hasitems}}
+
+  {{#threads}}
+    <section class="embeddisc-dashboard-thread">
+      <h3 class="embeddisc-dashboard-threadname">{{name}}</h3>
+      {{#posts}}
+        <a class="embeddisc-dashboard-postlink" href="{{{posturl}}}">
+          <div class="embeddisc-post {{#deleted}}embeddisc-post-deleted{{/deleted}}">
+            <div class="embeddisc-post-avatar">{{{avatar}}}</div>
+            <div class="embeddisc-post-body">
+              <div class="embeddisc-post-meta">
+                <span class="embeddisc-post-author">{{authorname}}</span>
+                {{#authorrole}}<span class="embeddisc-post-role">{{authorrole}}</span>{{/authorrole}}
+              </div>
+              <div class="embeddisc-post-time">
+                <span class="embeddisc-post-time-relative" data-region="time-ago" data-timestamp="{{timecreated}}"
+                  title="{{timecreatediso}}">{{timecreatedrelative}}</span>
+                {{#edited}}<span class="embeddisc-post-edited">{{#str}}edited, filter_embeddiscussion{{/str}}</span>{{/edited}}
+              </div>
+              {{#deleted}}
+                <div class="embeddisc-post-content text-muted">{{#str}}deleted_post, filter_embeddiscussion{{/str}}</div>
+              {{/deleted}}
+              {{^deleted}}
+                <div class="embeddisc-post-content">{{{content}}}</div>
+              {{/deleted}}
+            </div>
+          </div>
+        </a>
+      {{/posts}}
+    </section>
+  {{/threads}}
+</div>
