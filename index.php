@@ -40,6 +40,16 @@ if ($action === 'view' && $threadid) {
             'filter/embeddiscussion:managethreads',
             $thread->courseid ? context_course::instance($thread->courseid) : context_system::instance()
         );
+        // Prefer the host page URL captured at filter time; fall back to the context URL.
+        if (!empty($thread->pageurl)) {
+            redirect(
+                new moodle_url(
+                    $thread->pageurl,
+                    [],
+                    \filter_embeddiscussion\manager::get_thread_uid($thread->id, $thread->contextid)
+                )
+            );
+        }
         // Best-effort redirect to where this thread lives.
         $url = $context->get_url();
         redirect($url);
