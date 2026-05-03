@@ -84,6 +84,95 @@ final class text_filter_test extends \advanced_testcase {
         $this->assertSame($input, $filter->filter($input));
     }
 
+    public function test_filter_defaults_thread_name_to_page_name(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Course: Course 1', false);
+        $SITE->fullname = 'Acceptance test site';
+        $SITE->shortname = 'Acceptance test site';
+        $context = \context_system::instance();
+        $filter = new text_filter($context, []);
+        $output = $filter->filter('Before {embeddiscussion} after');
+        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $this->assertNotNull($thread);
+        $this->assertSame(0, (int)$thread->anonymous);
+        $this->assertSame(0, (int)$thread->locked);
+        $this->assertStringContainsString('data-region="filter-embeddiscussion"', $output);
+        $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
+    }
+
+    public function test_filter_defaults_name_with_keyword_only_token(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Course: Course 1', false);
+        $SITE->fullname = 'Acceptance test site';
+        $SITE->shortname = 'Acceptance test site';
+        $context = \context_system::instance();
+        $filter = new text_filter($context, []);
+        $output = $filter->filter('{embeddiscussion,anonymous,locked}');
+        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $this->assertNotNull($thread);
+        $this->assertSame(1, (int)$thread->anonymous);
+        $this->assertSame(1, (int)$thread->locked);
+        $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
+    }
+
+    public function test_filter_defaults_name_works_with_alternate_spelling(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Course: Course 1', false);
+        $SITE->fullname = 'Acceptance test site';
+        $SITE->shortname = 'Acceptance test site';
+        $context = \context_system::instance();
+        $filter = new text_filter($context, []);
+        $output = $filter->filter('{embeddeddiscussion}');
+        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $this->assertNotNull($thread);
+        $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
+    }
+
+    public function test_filter_leaves_nameless_token_when_page_title_unavailable(): void {
+        global $PAGE;
+        $this->resetAfterTest();
+        $PAGE->set_title('', false);
+        $context = \context_system::instance();
+        $filter = new text_filter($context, []);
+        $input = '{embeddiscussion,anon}';
+        $this->assertSame($input, $filter->filter($input));
+    }
+
+    public function test_filter_defaults_name_with_colon_single_keyword_token(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Course: Course 1', false);
+        $SITE->fullname = 'Acceptance test site';
+        $SITE->shortname = 'Acceptance test site';
+        $context = \context_system::instance();
+        $filter = new text_filter($context, []);
+        $output = $filter->filter('{embeddiscussion:anon}');
+        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $this->assertNotNull($thread);
+        $this->assertSame(1, (int)$thread->anonymous);
+        $this->assertSame(0, (int)$thread->locked);
+        $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
+    }
+
+    public function test_filter_defaults_name_with_colon_multiple_keywords_token(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Course: Course 1', false);
+        $SITE->fullname = 'Acceptance test site';
+        $SITE->shortname = 'Acceptance test site';
+        $context = \context_system::instance();
+        $filter = new text_filter($context, []);
+        $output = $filter->filter('{embeddiscussion:locked,anon}');
+        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $this->assertNotNull($thread);
+        $this->assertSame(1, (int)$thread->anonymous);
+        $this->assertSame(1, (int)$thread->locked);
+        $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
+    }
+
     public function test_filter_persists_anonymous_and_locked_settings_server_side(): void {
         $this->resetAfterTest();
         $context = \context_system::instance();
@@ -309,6 +398,30 @@ final class text_filter_test extends \advanced_testcase {
             'unknown trailing word stays in name' => [
                 'Demo, unknown',
                 ['name' => 'Demo, unknown', 'anonymous' => false, 'locked' => false],
+            ],
+            'empty body has empty name' => [
+                '',
+                ['name' => '', 'anonymous' => false, 'locked' => false],
+            ],
+            'leading comma keyword has empty name' => [
+                ',anon',
+                ['name' => '', 'anonymous' => true, 'locked' => false],
+            ],
+            'leading comma both keywords has empty name' => [
+                ',anonymous,locked',
+                ['name' => '', 'anonymous' => true, 'locked' => true],
+            ],
+            'single keyword anon has empty name' => [
+                'anon',
+                ['name' => '', 'anonymous' => true, 'locked' => false],
+            ],
+            'single keyword locked has empty name' => [
+                'locked',
+                ['name' => '', 'anonymous' => false, 'locked' => true],
+            ],
+            'single keyword full word anonymous has empty name' => [
+                'anonymous',
+                ['name' => '', 'anonymous' => true, 'locked' => false],
             ],
         ];
     }

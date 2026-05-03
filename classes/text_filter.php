@@ -22,6 +22,15 @@ namespace filter_embeddiscussion;
  * Replaces tokens of the form {embeddeddiscussion:Name of thread[,keyword...]}
  * with a skeleton container that the JS module populates asynchronously.
  *
+ * The thread name is optional. If the body contains no name (only keywords, or
+ * nothing at all), the thread name defaults to the current page name — the same
+ * derivation as for {comments}. All of these resolve to the page name:
+ *   - {embeddiscussion}
+ *   - {embeddiscussion,anon}
+ *   - {embeddiscussion,locked}
+ *   - {embeddiscussion:anon}
+ *   - {embeddiscussion:locked,anon}
+ *
  * Optional trailing keywords (case-insensitive, any order):
  *   - lock | locked     - the thread is locked (no new posts or edits).
  *   - anon | anonymous  - student posts are shown with anonymous handles.
@@ -39,8 +48,12 @@ namespace filter_embeddiscussion;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class text_filter extends \core_filters\text_filter {
-    /** Pattern matches both {embeddeddiscussion:..} and {embeddiscussion:..}. */
-    const PATTERN = '/\{embedd(?:eddi|i)scussion:([^}]+)\}/i';
+    /**
+     * Pattern matches both {embeddeddiscussion..} and {embeddiscussion..} with an
+     * optional body introduced by ':' (explicit name) or ',' (keywords only, name
+     * defaults to the page title).
+     */
+    const PATTERN = '/\{embedd(?:eddi|i)scussion([:,][^}]*)?\}/i';
 
     /** Pattern matches the legacy [[filter_disqus]] / [[filter_disqus:segment]] / {comments} tokens. */
     const LEGACY_PATTERN = '/\[\[filter_disqus(?::([^\]]*))?\]\]|\{comments\}/i';
@@ -67,7 +80,7 @@ class text_filter extends \core_filters\text_filter {
             $text = self::convert_legacy_tokens($text);
         }
 
-        if (\strpos($text, 'iscussion:') === false) {
+        if (\stripos($text, 'iscussion') === false) {
             return $text;
         }
 
@@ -78,9 +91,25 @@ class text_filter extends \core_filters\text_filter {
         $context = $this->context;
 
         $text = preg_replace_callback(self::PATTERN, function ($matches) use ($context, $OUTPUT) {
-            $parsed = self::parse_token_body($matches[1]);
+            $captured = $matches[1] ?? '';
+            // A leading ':' introduces an explicit name; a leading ',' starts the keyword
+            // list with no name. Strip a leading ':' so parse_token_body sees only the body;
+            // a leading ',' is left in place so parse_token_body returns an empty name and
+            // we fall back to the current page title below.
+            $hascolon = ($captured !== '' && $captured[0] === ':');
+            $body = $hascolon ? substr($captured, 1) : $captured;
+            $parsed = self::parse_token_body($body);
             if ($parsed['name'] === '') {
-                return $matches[0];
+                $haskeyword = $parsed['anonymous'] || $parsed['locked'];
+                if ($hascolon && !$haskeyword) {
+                    // Explicit empty name with no keywords (e.g. "{embeddiscussion:}") —
+                    // preserve the broken token rather than silently changing it.
+                    return $matches[0];
+                }
+                $parsed['name'] = self::derive_current_page_name();
+                if ($parsed['name'] === '') {
+                    return $matches[0];
+                }
             }
             // Resolve the thread server-side so the browser only learns the thread id.
             // anonymous/locked are token-authored settings — never trust them from the client.
@@ -115,7 +144,10 @@ class text_filter extends \core_filters\text_filter {
      * The body is split on commas. Trailing parts that match a recognised keyword
      * (lock/locked/anon/anonymous, case-insensitive) or are empty are stripped
      * from the right; the remaining parts are rejoined with ", " to form the name.
-     * Spaces around delimiters are trimmed; keyword order is unimportant.
+     * Spaces around delimiters are trimmed; keyword order is unimportant. A body
+     * consisting entirely of keywords (e.g. "anon", "locked,anon") yields an
+     * empty name — the caller can then fall back to a default such as the page
+     * title.
      *
      * @param string $body the text between "embeddeddiscussion:" and "}"
      * @return array{name: string, anonymous: bool, locked: bool}
@@ -123,10 +155,6 @@ class text_filter extends \core_filters\text_filter {
     public static function parse_token_body(string $body): array {
         $anonymous = false;
         $locked = false;
-
-        if (strpos($body, ',') === false) {
-            return ['name' => trim($body), 'anonymous' => false, 'locked' => false];
-        }
 
         $parts = array_map('trim', explode(',', $body));
 
@@ -167,6 +195,40 @@ class text_filter extends \core_filters\text_filter {
      * @return string the text with any legacy tokens rewritten
      */
     public static function convert_legacy_tokens(string $text): string {
+        $pagename = self::derive_current_page_name();
+        if ($pagename === '') {
+            return $text;
+        }
+
+        $text = preg_replace_callback(
+            '/\[\[filter_disqus(?::([^\]]*))?\]\]/i',
+            function ($matches) use ($pagename) {
+                $segment = isset($matches[1]) ? trim($matches[1]) : '';
+                $threadname = $segment !== '' ? $pagename . ' (' . $segment . ')' : $pagename;
+                return '{embeddiscussion:' . $threadname . '}';
+            },
+            $text
+        );
+
+        $text = preg_replace_callback(
+            '/\{comments\}/i',
+            function () use ($pagename) {
+                return '{embeddiscussion:' . $pagename . '}';
+            },
+            $text
+        );
+
+        return $text;
+    }
+
+    /**
+     * Derive a thread name from the current page title, with the trailing site
+     * name segment stripped and characters that would break the canonical token
+     * removed. Returns '' if no usable page title is available.
+     *
+     * @return string the sanitised page-derived thread name
+     */
+    public static function derive_current_page_name(): string {
         global $PAGE, $SITE;
 
         $pagetitle = '';
@@ -180,30 +242,7 @@ class text_filter extends \core_filters\text_filter {
             $sitenames[] = (string) ($SITE->shortname ?? '');
         }
 
-        $pagename = self::derive_page_name($pagetitle, $sitenames);
-        if ($pagename === '') {
-            return $text;
-        }
-
-        $text = preg_replace_callback(
-            '/\[\[filter_disqus(?::([^\]]*))?\]\]/i',
-            function ($matches) use ($pagename) {
-                $segment = isset($matches[1]) ? trim($matches[1]) : '';
-                $threadname = $segment !== '' ? $pagename . ' (' . $segment . ')' : $pagename;
-                return '{embeddiscussion:' . self::sanitise_thread_name($threadname) . '}';
-            },
-            $text
-        );
-
-        $text = preg_replace_callback(
-            '/\{comments\}/i',
-            function () use ($pagename) {
-                return '{embeddiscussion:' . self::sanitise_thread_name($pagename) . '}';
-            },
-            $text
-        );
-
-        return $text;
+        return self::sanitise_thread_name(self::derive_page_name($pagetitle, $sitenames));
     }
 
     /**
