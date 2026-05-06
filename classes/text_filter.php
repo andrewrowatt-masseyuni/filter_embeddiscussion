@@ -88,8 +88,6 @@ class text_filter extends \core_filters\text_filter {
             return $text;
         }
 
-        $context = $this->context;
-
         // Capture the host page's URL so threads can be linked back to where they live.
         // Skip if the page never called set_url(): the magic getter would otherwise emit a
         // DEBUG_DEVELOPER notice and fall back to a guessed $FULLME we don't want to store.
@@ -102,7 +100,10 @@ class text_filter extends \core_filters\text_filter {
             $pageurl = null;
         }
 
-        $text = preg_replace_callback(self::PATTERN, function ($matches) use ($context, $OUTPUT, $pageurl) {
+        $dashboardused = false;
+        $self = $this;
+
+        $text = preg_replace_callback(self::PATTERN, function ($matches) use ($self, $OUTPUT, $pageurl, &$dashboardused) {
             $captured = $matches[1] ?? '';
             // A leading ':' introduces an explicit name; a leading ',' starts the keyword
             // list with no name. Strip a leading ':' so parse_token_body sees only the body;
@@ -110,41 +111,27 @@ class text_filter extends \core_filters\text_filter {
             // we fall back to the current page title below.
             $hascolon = ($captured !== '' && $captured[0] === ':');
             $body = $hascolon ? substr($captured, 1) : $captured;
-            $parsed = self::parse_token_body($body);
-            if ($parsed['name'] === '') {
-                $haskeyword = $parsed['anonymous'] || $parsed['locked'];
-                if ($hascolon && !$haskeyword) {
-                    // Explicit empty name with no keywords (e.g. "{embeddiscussion:}") —
-                    // preserve the broken token rather than silently changing it.
-                    return $matches[0];
+
+            if ($hascolon && strcasecmp(trim($body), 'dashboard') === 0) {
+                $rendered = $self->render_dashboard_placeholder($OUTPUT);
+                if ($rendered !== null) {
+                    $dashboardused = true;
+                    return $rendered;
                 }
-                $parsed['name'] = self::derive_current_page_name();
-                if ($parsed['name'] === '') {
-                    return $matches[0];
-                }
-            }
-            // Resolve the thread server-side so the browser only learns the thread id.
-            // anonymous/locked are token-authored settings — never trust them from the client.
-            try {
-                $thread = manager::get_or_create_thread($parsed['name'], $context, $pageurl);
-                $thread = manager::sync_settings_from_token($thread, [
-                    'anonymous' => $parsed['anonymous'],
-                    'locked' => $parsed['locked'],
-                ]);
-            } catch (\Throwable $e) {
                 return $matches[0];
             }
-            return $OUTPUT->render_from_template('filter_embeddiscussion/placeholder', [
-                'uid' => manager::get_thread_uid($thread->id, $context->id),
-                'threadid' => (int)$thread->id,
-                'contextid' => $context->id,
-            ]);
+
+            $rendered = $self->render_thread_placeholder($body, $hascolon, $OUTPUT, $pageurl);
+            return $rendered ?? $matches[0];
         }, $text);
 
         // Request the JS bootstrapper once per page.
         if (!self::$requirementsdone) {
             self::$requirementsdone = true;
             $PAGE->requires->js_call_amd('filter_embeddiscussion/discussion', 'init');
+        }
+        if ($dashboardused) {
+            $PAGE->requires->js_call_amd('filter_embeddiscussion/dashboard', 'init');
         }
 
         return $text;
@@ -231,6 +218,92 @@ class text_filter extends \core_filters\text_filter {
         );
 
         return $text;
+    }
+
+    /**
+     * Render a {embeddiscussion:dashboard} placeholder, or null if no enclosing
+     * course can be determined and the token should be left untouched.
+     *
+     * @param object $output the page output renderer
+     * @return string|null rendered HTML, or null to keep the original token text
+     */
+    protected function render_dashboard_placeholder($output): ?string {
+        $courseid = $this->derive_current_courseid();
+        if ($courseid <= 0) {
+            return null;
+        }
+        return $output->render_from_template('filter_embeddiscussion/dashboard_placeholder', [
+            'uid' => 'embeddisc_dashboard_' . $courseid,
+            'courseid' => $courseid,
+        ]);
+    }
+
+    /**
+     * Render a {embeddiscussion[:Name][,keywords]} thread placeholder. Returns
+     * null when the body parses to an empty name with no keywords (a malformed
+     * token to preserve verbatim) or when the thread cannot be resolved.
+     *
+     * @param string $body raw token body (without the leading ':' if any)
+     * @param bool $hascolon true if the original token used the explicit-name
+     *                       ':' separator rather than the keyword-only ',' form
+     * @param object $output the page output renderer
+     * @param string|null $pageurl URL of the host page, for back-linking
+     * @return string|null rendered HTML, or null to keep the original token text
+     */
+    protected function render_thread_placeholder(
+        string $body,
+        bool $hascolon,
+        $output,
+        ?string $pageurl
+    ): ?string {
+        $parsed = self::parse_token_body($body);
+        if ($parsed['name'] === '') {
+            $haskeyword = $parsed['anonymous'] || $parsed['locked'];
+            if ($hascolon && !$haskeyword) {
+                // Explicit empty name with no keywords (e.g. "{embeddiscussion:}") —
+                // preserve the broken token rather than silently changing it.
+                return null;
+            }
+            $parsed['name'] = self::derive_current_page_name();
+            if ($parsed['name'] === '') {
+                return null;
+            }
+        }
+        // Resolve the thread server-side so the browser only learns the thread id.
+        // anonymous/locked are token-authored settings — never trust them from the client.
+        try {
+            $thread = manager::get_or_create_thread($parsed['name'], $this->context, $pageurl);
+            $thread = manager::sync_settings_from_token($thread, [
+                'anonymous' => $parsed['anonymous'],
+                'locked' => $parsed['locked'],
+            ]);
+        } catch (\Throwable $e) {
+            return null;
+        }
+        return $output->render_from_template('filter_embeddiscussion/placeholder', [
+            'uid' => manager::get_thread_uid($thread->id, $this->context->id),
+            'threadid' => (int)$thread->id,
+            'contextid' => $this->context->id,
+        ]);
+    }
+
+    /**
+     * Discover the course id associated with the filtered content. Falls back
+     * to the current $PAGE course if the filter context is above CONTEXT_COURSE.
+     *
+     * @return int 0 if no course context is available
+     */
+    protected function derive_current_courseid(): int {
+        global $PAGE;
+
+        $coursectx = $this->context->get_course_context(false);
+        if ($coursectx) {
+            return (int)$coursectx->instanceid;
+        }
+        if (isset($PAGE) && is_object($PAGE) && isset($PAGE->course) && (int)$PAGE->course->id !== SITEID) {
+            return (int)$PAGE->course->id;
+        }
+        return 0;
     }
 
     /**

@@ -21,47 +21,91 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+import {get_string as getString} from 'core/str';
+
 const SECOND = 1;
-const MINUTE = 60;
+const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
-const MONTH = 30 * DAY;
 const YEAR = 365 * DAY;
 
+const UNIT_FALLBACK_LABELS = {
+    second: ['second', 'seconds'],
+    minute: ['minute', 'minutes'],
+    hour: ['hour', 'hours'],
+    day: ['day', 'days'],
+    year: ['year', 'years'],
+};
+
+const UNIT_FORMATTERS = new Map();
+
 let started = false;
+let agosuffix = '';
 
 /**
- * Format an age in seconds as a short relative string.
- * Coarse, uses Intl.RelativeTimeFormat for locale awareness when available.
+ * Format a duration value with a locale-aware unit label when possible.
+ *
+ * @param {number} value unit value
+ * @param {string} unit Intl.NumberFormat unit key
+ * @return {string}
+ */
+const formatUnit = (value, unit) => {
+    if (typeof Intl !== 'undefined' && Intl.NumberFormat) {
+        if (!UNIT_FORMATTERS.has(unit)) {
+            try {
+                UNIT_FORMATTERS.set(unit, new Intl.NumberFormat(undefined, {
+                    style: 'unit',
+                    unit,
+                    unitDisplay: 'long',
+                }));
+            } catch {
+                UNIT_FORMATTERS.set(unit, null);
+            }
+        }
+        const formatter = UNIT_FORMATTERS.get(unit);
+        if (formatter) {
+            return formatter.format(value);
+        }
+    }
+
+    const labels = UNIT_FALLBACK_LABELS[unit];
+    return `${value} ${value === 1 ? labels[0] : labels[1]}`;
+};
+
+/**
+ * Format an age in seconds using the same two-part style as Moodle format_time.
  *
  * @param {number} ageSeconds difference between now and timestamp, in seconds
  * @return {string}
  */
 export const format = (ageSeconds) => {
-    const age = Math.max(0, Math.floor(ageSeconds));
-    if (age < 30 * SECOND) {
-        return 'a few seconds ago';
+    const age = Math.abs(Math.floor(ageSeconds));
+
+    const years = Math.floor(age / YEAR);
+    let remainder = age - (years * YEAR);
+    const days = Math.floor(remainder / DAY);
+    remainder = age - (days * DAY);
+    const hours = Math.floor(remainder / HOUR);
+    remainder = remainder - (hours * HOUR);
+    const mins = Math.floor(remainder / MINUTE);
+    const secs = remainder - (mins * MINUTE);
+
+    if (years) {
+        return [formatUnit(years, 'year'), days ? formatUnit(days, 'day') : ''].join(' ').trim();
     }
-    const rtf = (typeof Intl !== 'undefined' && Intl.RelativeTimeFormat)
-        ? new Intl.RelativeTimeFormat(undefined, {numeric: 'auto'})
-        : null;
-    const fmt = (n, unit) => rtf ? rtf.format(-n, unit) : `${n} ${unit}${n === 1 ? '' : 's'} ago`;
-    if (age < MINUTE) {
-        return fmt(age, 'second');
+    if (days) {
+        return [formatUnit(days, 'day'), hours ? formatUnit(hours, 'hour') : ''].join(' ').trim();
     }
-    if (age < HOUR) {
-        return fmt(Math.floor(age / MINUTE), 'minute');
+    if (hours) {
+        return [formatUnit(hours, 'hour'), mins ? formatUnit(mins, 'minute') : ''].join(' ').trim();
     }
-    if (age < DAY) {
-        return fmt(Math.floor(age / HOUR), 'hour');
+    if (mins) {
+        return [formatUnit(mins, 'minute'), secs ? formatUnit(secs, 'second') : ''].join(' ').trim();
     }
-    if (age < MONTH) {
-        return fmt(Math.floor(age / DAY), 'day');
+    if (secs) {
+        return formatUnit(secs, 'second');
     }
-    if (age < YEAR) {
-        return fmt(Math.floor(age / MONTH), 'month');
-    }
-    return fmt(Math.floor(age / YEAR), 'year');
+    return 'now';
 };
 
 /**
@@ -74,17 +118,25 @@ const tick = () => {
         if (Number.isNaN(ts)) {
             return;
         }
-        el.textContent = format(now - ts);
+        const relative = format(now - ts);
+        el.textContent = (relative === 'now' || !agosuffix) ? relative : `${relative} ${agosuffix}`;
     });
 };
 
 /**
  * Start the page-wide ticker if not already running. Refreshes every 30 seconds.
  */
-export const startTicker = () => {
+export const startTicker = async() => {
     if (started) {
         return;
     }
     started = true;
+
+    try {
+        agosuffix = await getString('ago', 'filter_embeddiscussion');
+    } catch {
+        agosuffix = '';
+    }
+
     setInterval(tick, 30 * 1000);
 };

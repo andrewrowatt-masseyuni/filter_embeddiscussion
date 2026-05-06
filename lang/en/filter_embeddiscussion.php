@@ -25,6 +25,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['ago'] = 'ago';
 $string['allposts'] = 'All posts';
 $string['anonymous'] = 'Anonymous';
 $string['anonymousnotice'] = 'Your posts will be anonymous to other students.';
@@ -33,6 +34,9 @@ $string['befirsttocomment'] = 'Be the first to comment.';
 $string['cancel'] = 'Cancel';
 $string['comment'] = 'Comment';
 $string['comments'] = '{$a} Comments';
+$string['dashboard_empty'] = 'No new posts since your last visit.';
+$string['dashboard_never'] = 'Showing all posts (this is your first visit).';
+$string['dashboard_since'] = 'New posts in the last {$a}.';
 $string['delete'] = 'Delete';
 $string['deleteconfirm'] = 'Delete this post?';
 $string['deleted_post'] = 'Post deleted.';
