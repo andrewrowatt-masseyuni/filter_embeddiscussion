@@ -608,7 +608,7 @@ class manager {
             'edited' => (bool)$post->edited,
             'timecreated' => (int)$post->timecreated,
             'timecreatediso' => userdate($post->timecreated, get_string('strftimedatetime', 'langconfig')),
-            'timecreatedrelative' => format_time(time() - $post->timecreated),
+            'timecreatedrelative' => format_time(time() - $post->timecreated) . ' ' . get_string('ago','filter_embeddiscussion'),
             'authorname' => $authorname,
             'authorhandle' => $handle,
             'authorrole' => $rolelabel,
