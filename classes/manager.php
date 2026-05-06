@@ -636,9 +636,8 @@ class manager {
     }
 
     /**
-     * Build the dashboard payload: posts created since the user's last visit
-     * to the course, grouped by thread, scoped to threads in modules the user
-     * can see (cm_info::uservisible enforces restrict-access conditions).
+     * Build the course feed payload: all posts in visible-module threads,
+     * newest-first, with unread markers for posts newer than last access.
      *
      * @param int $courseid
      * @param int $userid viewing user
@@ -677,22 +676,29 @@ class manager {
         );
 
         $threadsout = [];
-        $totalposts = 0;
+        $postsout = [];
         foreach ($threads as $thread) {
             $entry = self::build_dashboard_thread_entry($thread, $lastaccess, $renderer);
             if ($entry === null) {
                 continue;
             }
-            $totalposts += $entry['postcount'];
             $threadsout[] = $entry;
+            $postsout = array_merge($postsout, $entry['posts']);
         }
 
-        return self::dashboard_payload($lastaccess, $threadsout, $totalposts);
+        usort($postsout, function (array $a, array $b): int {
+            if ((int)$a['timecreated'] === (int)$b['timecreated']) {
+                return (int)$b['id'] <=> (int)$a['id'];
+            }
+            return (int)$b['timecreated'] <=> (int)$a['timecreated'];
+        });
+
+        return self::dashboard_payload($lastaccess, $threadsout, count($postsout), $postsout);
     }
 
     /**
-     * Build the per-thread payload of new posts since $lastaccess, or null if
-     * the thread has no qualifying posts.
+     * Build the per-thread payload of all posts, or null if the thread has no
+     * posts to render.
      *
      * @param \stdClass $thread
      * @param int $lastaccess
@@ -708,8 +714,8 @@ class manager {
 
         $posts = $DB->get_records_select(
             'filter_embeddiscussion_post',
-            'threadid = :tid AND deleted = 0 AND timecreated > :since',
-            ['tid' => (int)$thread->id, 'since' => $lastaccess],
+            'threadid = :tid',
+            ['tid' => (int)$thread->id],
             'timecreated DESC'
         );
         if (empty($posts)) {
@@ -733,7 +739,7 @@ class manager {
                 false,
                 $renderer
             );
-            $postsout[] = self::dashboard_post_from_view($view, (int)$p->id, $pageurl);
+            $postsout[] = self::dashboard_post_from_view($view, $thread, (int)$p->id, $pageurl, $lastaccess);
         }
         return [
             'threadid' => (int)$thread->id,
@@ -746,13 +752,13 @@ class manager {
 
     /**
      * Empty-state payload used when the user has no visible modules in the
-     * course or no new posts.
+     * course or no visible posts.
      *
      * @param int $lastaccess
      * @return array
      */
     protected static function empty_dashboard_payload(int $lastaccess): array {
-        return self::dashboard_payload($lastaccess, [], 0);
+        return self::dashboard_payload($lastaccess, [], 0, []);
     }
 
     /**
@@ -761,9 +767,10 @@ class manager {
      * @param int $lastaccess
      * @param array $threads
      * @param int $totalposts
+     * @param array $posts
      * @return array
      */
-    protected static function dashboard_payload(int $lastaccess, array $threads, int $totalposts): array {
+    protected static function dashboard_payload(int $lastaccess, array $threads, int $totalposts, array $posts): array {
         return [
             'lastaccess' => $lastaccess,
             'lastaccessiso' => $lastaccess
@@ -777,6 +784,7 @@ class manager {
             'threadcount' => count($threads),
             'postcount' => $totalposts,
             'threads' => $threads,
+            'posts' => $posts,
         ];
     }
 
@@ -787,11 +795,19 @@ class manager {
      * links back to the post in its hosting page.
      *
      * @param array $view a row produced by self::build_post_view
+     * @param \stdClass $thread thread record
      * @param int $postid the post's id (used to compose the anchor)
      * @param string $pageurl the host page URL stored on the thread
+     * @param int $lastaccess the viewer's last course access timestamp
      * @return array
      */
-    protected static function dashboard_post_from_view(array $view, int $postid, string $pageurl): array {
+    protected static function dashboard_post_from_view(
+        array $view,
+        \stdClass $thread,
+        int $postid,
+        string $pageurl,
+        int $lastaccess
+    ): array {
         unset(
             $view['parentid'],
             $view['votes_up'],
@@ -801,6 +817,9 @@ class manager {
             $view['candelete'],
             $view['canreply']
         );
+        $view['threadid'] = (int)$thread->id;
+        $view['threadname'] = (string)$thread->name;
+        $view['isunread'] = ((int)$view['timecreated'] > $lastaccess);
         $view['posturl'] = ($pageurl !== '') ? $pageurl . '#embeddisc-post-' . $postid : '';
         return $view;
     }

@@ -383,3 +383,24 @@
 .embeddisc-threads-table th {
     background: #f6f7f9;
 }
+
+/* --- Latest posts dashboard ---------------------------------------------- */
+.embeddisc-dashboard-thread {
+    margin-bottom: 1rem;
+}
+.embeddisc-dashboard-threadname {
+    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
+}
+.embeddisc-dashboard-postlink {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+}
+.embeddisc-dashboard-postlink:hover .embeddisc-post-content {
+    text-decoration: underline;
+}
+.embeddisc-dashboard-post-unread {
+    border-left: 3px solid var(--brand-primary, #0d3d6b);
+    padding-left: 0.5rem;
+}

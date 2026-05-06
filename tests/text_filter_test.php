@@ -76,6 +76,18 @@ final class text_filter_test extends \advanced_testcase {
         $this->assertStringContainsString('data-threadid="' . (int)$threadb->id . '"', $output);
     }
 
+    public function test_filter_renders_latestposts_placeholder_in_course_context(): void {
+        global $PAGE;
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $PAGE->set_course($course);
+        $context = \context_course::instance($course->id);
+        $filter = new text_filter($context, []);
+        $output = $filter->filter('{embeddeddiscussion:latestposts}');
+        $this->assertStringContainsString('data-region="filter-embeddiscussion-dashboard"', $output);
+        $this->assertStringContainsString('data-courseid="' . (int)$course->id . '"', $output);
+    }
+
     public function test_filter_ignores_empty_name(): void {
         $this->resetAfterTest();
         $context = \context_system::instance();
