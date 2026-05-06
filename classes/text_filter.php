@@ -112,7 +112,7 @@ class text_filter extends \core_filters\text_filter {
             $hascolon = ($captured !== '' && $captured[0] === ':');
             $body = $hascolon ? substr($captured, 1) : $captured;
 
-            if ($hascolon && strcasecmp(trim($body), 'dashboard') === 0) {
+            if ($hascolon && self::is_course_feed_token($body)) {
                 $rendered = $self->render_dashboard_placeholder($OUTPUT);
                 if ($rendered !== null) {
                     $dashboardused = true;
@@ -221,8 +221,9 @@ class text_filter extends \core_filters\text_filter {
     }
 
     /**
-     * Render a {embeddiscussion:dashboard} placeholder, or null if no enclosing
-     * course can be determined and the token should be left untouched.
+     * Render a course-feed placeholder ({embeddiscussion:dashboard} or
+     * {embeddiscussion:latestposts}), or null if no enclosing course can be
+     * determined and the token should be left untouched.
      *
      * @param object $output the page output renderer
      * @return string|null rendered HTML, or null to keep the original token text
@@ -304,6 +305,17 @@ class text_filter extends \core_filters\text_filter {
             return (int)$PAGE->course->id;
         }
         return 0;
+    }
+
+    /**
+     * True when the explicit token body is a recognised course-feed alias.
+     *
+     * @param string $body raw token body after the leading ':'
+     * @return bool
+     */
+    protected static function is_course_feed_token(string $body): bool {
+        $value = trim($body);
+        return strcasecmp($value, 'dashboard') === 0 || strcasecmp($value, 'latestposts') === 0;
     }
 
     /**
