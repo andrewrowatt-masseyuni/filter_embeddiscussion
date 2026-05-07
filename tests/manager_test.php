@@ -171,20 +171,30 @@ final class manager_test extends \advanced_testcase {
         $visiblelabel = $this->getDataGenerator()->create_module('label', [
             'course' => $course->id,
             'name' => 'Visible label',
-            'intro' => '{embeddeddiscussion:Visible thread}',
+            'intro' => '{embeddeddiscussion:visible-thread}',
             'visible' => 1,
         ]);
         $hiddenlabel = $this->getDataGenerator()->create_module('label', [
             'course' => $course->id,
             'name' => 'Hidden label',
-            'intro' => '{embeddeddiscussion:Hidden thread}',
+            'intro' => '{embeddeddiscussion:hidden-thread}',
             'visible' => 0,
         ]);
 
         $visiblecontext = \context_module::instance($visiblelabel->cmid);
         $hiddencontext = \context_module::instance($hiddenlabel->cmid);
-        $visiblethread = manager::get_or_create_thread('Visible thread', $visiblecontext, '/mod/label/view.php?id=' . $visiblelabel->cmid);
-        $hiddenthread = manager::get_or_create_thread('Hidden thread', $hiddencontext, '/mod/label/view.php?id=' . $hiddenlabel->cmid);
+        $visiblethread = manager::get_or_create_thread(
+            'visible-thread',
+            $visiblecontext,
+            '/mod/label/view.php?id=' . $visiblelabel->cmid,
+            'Visible label'
+        );
+        $hiddenthread = manager::get_or_create_thread(
+            'hidden-thread',
+            $hiddencontext,
+            '/mod/label/view.php?id=' . $hiddenlabel->cmid,
+            'Hidden label'
+        );
 
         $this->setUser($teacher);
         $oldpost = manager::create_post($visiblethread, $visiblecontext, 0, 'Old visible post', $teacher->id);
@@ -212,7 +222,7 @@ final class manager_test extends \advanced_testcase {
         $this->assertSame((int)$oldpost->id, (int)$view['posts'][1]['id']);
         $this->assertTrue($view['posts'][0]['isunread']);
         $this->assertFalse($view['posts'][1]['isunread']);
-        $this->assertSame('Visible thread', $view['posts'][0]['threadname']);
+        $this->assertSame('Visible label', $view['posts'][0]['threadname']);
         $this->assertStringContainsString('#embeddisc-post-' . (int)$newpost->id, $view['posts'][0]['posturl']);
         $this->assertStringNotContainsString('Hidden post', json_encode($view));
     }

@@ -31,16 +31,16 @@ class manager {
     const ALLOWED_TAGS = '<p><br><b><strong><i><em><u><a><img><mark><ul><ol><li><blockquote><span>';
 
     /**
-     * Get an existing thread by name+context, or null.
+     * Get an existing thread by idnumber+context, or null.
      *
-     * @param string $name
+     * @param string $idnumber
      * @param int $contextid
      * @return \stdClass|null
      */
-    public static function find_thread(string $name, int $contextid): ?\stdClass {
+    public static function find_thread(string $idnumber, int $contextid): ?\stdClass {
         global $DB;
-        $name = trim($name);
-        $hash = sha1($name);
+        $idnumber = trim($idnumber);
+        $hash = sha1($idnumber);
         $record = $DB->get_record('filter_embeddiscussion_thread', [
             'namehash' => $hash,
             'contextid' => $contextid,
@@ -49,30 +49,42 @@ class manager {
     }
 
     /**
-     * Get or create the thread for a name+context. Creation is logged.
+     * Get or create the thread for an idnumber+context. Creation is logged.
      *
-     * @param string $name
+     * @param string $idnumber
      * @param \context $context
      * @param string|null $pageurl URL of the page hosting the thread; refreshed on each
      *                             call so the stored value tracks the current location.
+     * @param string|null $pagetitle page title at token-processing time; refreshed
+     *                               on each call when available.
      * @return \stdClass
      */
     public static function get_or_create_thread(
-        string $name,
+        string $idnumber,
         \context $context,
-        ?string $pageurl = null
+        ?string $pageurl = null,
+        ?string $pagetitle = null
     ): \stdClass {
-        global $DB, $USER;
+        global $DB;
 
-        $name = trim($name);
-        if ($name === '') {
-            throw new \invalid_parameter_exception('Thread name cannot be empty');
+        $idnumber = trim($idnumber);
+        if ($idnumber === '') {
+            throw new \invalid_parameter_exception('Thread idnumber cannot be empty');
         }
+        $pagetitle = trim((string)$pagetitle);
 
-        $existing = self::find_thread($name, $context->id);
+        $existing = self::find_thread($idnumber, $context->id);
         if ($existing) {
+            $changed = false;
             if ($pageurl !== null && $pageurl !== '' && (string)($existing->pageurl ?? '') !== $pageurl) {
                 $existing->pageurl = $pageurl;
+                $changed = true;
+            }
+            if ($pagetitle !== '' && (string)($existing->pagetitle ?? '') !== $pagetitle) {
+                $existing->pagetitle = $pagetitle;
+                $changed = true;
+            }
+            if ($changed) {
                 $existing->timemodified = time();
                 $DB->update_record('filter_embeddiscussion_thread', $existing);
             }
@@ -90,8 +102,9 @@ class manager {
         $masterlistsize = max(count(handles::master_list()), 1);
 
         $record = (object)[
-            'name' => $name,
-            'namehash' => sha1($name),
+            'idnumber' => $idnumber,
+            'pagetitle' => ($pagetitle !== '') ? $pagetitle : $idnumber,
+            'namehash' => sha1($idnumber),
             'contextid' => $context->id,
             'courseid' => $courseid,
             'anonymous' => 0,
@@ -106,7 +119,7 @@ class manager {
             $record->id = $DB->insert_record('filter_embeddiscussion_thread', $record);
         } catch (\dml_write_exception $e) {
             // Race condition: re-fetch the row created by the racing request.
-            $existing = self::find_thread($name, $context->id);
+            $existing = self::find_thread($idnumber, $context->id);
             if ($existing) {
                 return $existing;
             }
@@ -514,7 +527,7 @@ class manager {
 
         return [
             'threadid' => (int)$thread->id,
-            'name' => $thread->name,
+            'name' => (string)$thread->idnumber,
             'anonymous' => (bool)$thread->anonymous,
             'currentuserisanonymous' => $currentuserisanonymous,
             'locked' => (bool)$thread->locked,
@@ -608,7 +621,7 @@ class manager {
             'edited' => (bool)$post->edited,
             'timecreated' => (int)$post->timecreated,
             'timecreatediso' => userdate($post->timecreated, get_string('strftimedatetime', 'langconfig')),
-            'timecreatedrelative' => format_time(time() - $post->timecreated) . ' ' . get_string('ago','filter_embeddiscussion'),
+            'timecreatedrelative' => format_time(time() - $post->timecreated) . ' ' . get_string('ago', 'filter_embeddiscussion'),
             'authorname' => $authorname,
             'authorhandle' => $handle,
             'authorrole' => $rolelabel,
@@ -672,7 +685,7 @@ class manager {
             'filter_embeddiscussion_thread',
             "contextid $insql",
             $inparams,
-            'name ASC'
+            'pagetitle ASC, idnumber ASC'
         );
 
         $threadsout = [];
@@ -743,11 +756,25 @@ class manager {
         }
         return [
             'threadid' => (int)$thread->id,
-            'name' => $thread->name,
+            'name' => self::thread_display_name($thread),
             'pageurl' => $pageurl,
             'postcount' => count($postsout),
             'posts' => $postsout,
         ];
+    }
+
+    /**
+     * Human-facing thread label for read-only views.
+     *
+     * @param \stdClass $thread
+     * @return string
+     */
+    protected static function thread_display_name(\stdClass $thread): string {
+        $pagetitle = trim((string)($thread->pagetitle ?? ''));
+        if ($pagetitle !== '') {
+            return $pagetitle;
+        }
+        return trim((string)($thread->idnumber ?? ''));
     }
 
     /**
@@ -818,7 +845,7 @@ class manager {
             $view['canreply']
         );
         $view['threadid'] = (int)$thread->id;
-        $view['threadname'] = (string)$thread->name;
+        $view['threadname'] = self::thread_display_name($thread);
         $view['isunread'] = ((int)$view['timecreated'] > $lastaccess);
         $view['posturl'] = ($pageurl !== '') ? $pageurl . '#embeddisc-post-' . $postid : '';
         return $view;

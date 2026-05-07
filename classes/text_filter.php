@@ -19,12 +19,12 @@ namespace filter_embeddiscussion;
 /**
  * embeddiscussion filter
  *
- * Replaces tokens of the form {embeddeddiscussion:Name of thread[,keyword...]}
+ * Replaces tokens of the form {embeddeddiscussion:Thread idnumber[,keyword...]}
  * with a skeleton container that the JS module populates asynchronously.
  *
- * The thread name is optional. If the body contains no name (only keywords, or
- * nothing at all), the thread name defaults to the current page name — the same
- * derivation as for {comments}. All of these resolve to the page name:
+ * The thread idnumber is optional. If the body contains no idnumber (only
+ * keywords, or nothing at all), the idnumber defaults to a slugified version of
+ * the current page name. All of these resolve to the page-title slug:
  *   - {embeddiscussion}
  *   - {embeddiscussion,anon}
  *   - {embeddiscussion,locked}
@@ -38,9 +38,9 @@ namespace filter_embeddiscussion;
  * Legacy syntaxes (drop-in replacement for filter_disqus and the {comments}
  * block) can also be recognised and rewritten to the canonical token before
  * processing when enabled via site settings:
- *   - [[filter_disqus]]                 -> {embeddiscussion:<page name>}
- *   - [[filter_disqus:<url_segment>]]   -> {embeddiscussion:<page name> (<url_segment>)}
- *   - {comments}                        -> {embeddiscussion:<page name>}
+ *   - [[filter_disqus]]                 -> {embeddiscussion:<page title-derived idnumber>}
+ *   - [[filter_disqus:<url_segment>]]   -> {embeddiscussion:<page title-derived idnumber> (<url_segment>)}
+ *   - {comments}                        -> {embeddiscussion:<page title-derived idnumber>}
  * where <page name> is the current $PAGE->title with any trailing
  * " | <site fullname>" or " | <site shortname>" segment stripped off.
  *
@@ -51,8 +51,8 @@ namespace filter_embeddiscussion;
 class text_filter extends \core_filters\text_filter {
     /**
      * Pattern matches both {embeddeddiscussion..} and {embeddiscussion..} with an
-     * optional body introduced by ':' (explicit name) or ',' (keywords only, name
-     * defaults to the page title).
+    * optional body introduced by ':' (explicit idnumber) or ',' (keywords only,
+    * idnumber defaults to the page-title slug).
      */
     const PATTERN = '/\{embedd(?:eddi|i)scussion([:,][^}]*)?\}/i';
 
@@ -109,9 +109,9 @@ class text_filter extends \core_filters\text_filter {
 
         $text = preg_replace_callback(self::PATTERN, function ($matches) use ($self, $OUTPUT, $pageurl, &$dashboardused) {
             $captured = $matches[1] ?? '';
-            // A leading ':' introduces an explicit name; a leading ',' starts the keyword
-            // list with no name. Strip a leading ':' so parse_token_body sees only the body;
-            // a leading ',' is left in place so parse_token_body returns an empty name and
+            // A leading ':' introduces an explicit idnumber; a leading ',' starts the keyword
+            // list with no idnumber. Strip a leading ':' so parse_token_body sees only the body;
+            // a leading ',' is left in place so parse_token_body returns an empty idnumber and
             // we fall back to the current page title below.
             $hascolon = ($captured !== '' && $captured[0] === ':');
             $body = $hascolon ? substr($captured, 1) : $captured;
@@ -142,15 +142,15 @@ class text_filter extends \core_filters\text_filter {
     }
 
     /**
-     * Parse the body of an embeddiscussion token into a name and trailing keywords.
+     * Parse the body of an embeddiscussion token into an idnumber and trailing keywords.
      *
      * The body is split on commas. Trailing parts that match a recognised keyword
      * (lock/locked/anon/anonymous, case-insensitive) or are empty are stripped
-     * from the right; the remaining parts are rejoined with ", " to form the name.
-     * Spaces around delimiters are trimmed; keyword order is unimportant. A body
-     * consisting entirely of keywords (e.g. "anon", "locked,anon") yields an
-     * empty name — the caller can then fall back to a default such as the page
-     * title.
+     * from the right; the remaining parts are rejoined with ", " to form the
+     * idnumber. Spaces around delimiters are trimmed; keyword order is
+     * unimportant. A body consisting entirely of keywords (e.g. "anon",
+     * "locked,anon") yields an empty idnumber — the caller can then fall back
+     * to a default such as the page-title slug.
      *
      * @param string $body the text between "embeddeddiscussion:" and "}"
      * @return array{name: string, anonymous: bool, locked: bool}
@@ -188,7 +188,7 @@ class text_filter extends \core_filters\text_filter {
 
     /**
      * Rewrite enabled legacy filter_disqus / {comments} tokens in text to the
-     * canonical {embeddiscussion:...} token, deriving the thread name from
+     * canonical {embeddiscussion:...} token, deriving the thread idnumber from
      * $PAGE->title.
      *
      * If the page title is unavailable (for example, when the filter runs in a
@@ -217,18 +217,23 @@ class text_filter extends \core_filters\text_filter {
             return $text;
         }
 
-        $pagename = self::derive_current_page_name();
-        if ($pagename === '') {
+        $pagetitle = self::derive_current_page_name();
+        if ($pagetitle === '') {
+            return $text;
+        }
+
+        $pageidnumber = self::sanitise_thread_name($pagetitle);
+        if ($pageidnumber === '') {
             return $text;
         }
 
         if ($disqusenabled) {
             $text = preg_replace_callback(
                 '/\[\[filter_disqus(?::([^\]]*))?\]\]/i',
-                function ($matches) use ($pagename) {
+                function ($matches) use ($pageidnumber) {
                     $segment = isset($matches[1]) ? trim($matches[1]) : '';
-                    $threadname = $segment !== '' ? $pagename . ' (' . $segment . ')' : $pagename;
-                    return '{embeddiscussion:' . $threadname . '}';
+                    $threadidnumber = $segment !== '' ? $pageidnumber . ' (' . $segment . ')' : $pageidnumber;
+                    return '{embeddiscussion:' . self::sanitise_thread_name($threadidnumber) . '}';
                 },
                 $text
             );
@@ -237,8 +242,8 @@ class text_filter extends \core_filters\text_filter {
         if ($commentsenabled) {
             $text = preg_replace_callback(
                 '/\{comments\}/i',
-                function () use ($pagename) {
-                    return '{embeddiscussion:' . $pagename . '}';
+                function () use ($pageidnumber) {
+                    return '{embeddiscussion:' . $pageidnumber . '}';
                 },
                 $text
             );
@@ -285,12 +290,12 @@ class text_filter extends \core_filters\text_filter {
     }
 
     /**
-     * Render a {embeddiscussion[:Name][,keywords]} thread placeholder. Returns
-     * null when the body parses to an empty name with no keywords (a malformed
+     * Render a {embeddiscussion[:Idnumber][,keywords]} thread placeholder.
+     * Returns null when the body parses to an empty idnumber with no keywords (a malformed
      * token to preserve verbatim) or when the thread cannot be resolved.
      *
      * @param string $body raw token body (without the leading ':' if any)
-     * @param bool $hascolon true if the original token used the explicit-name
+     * @param bool $hascolon true if the original token used the explicit-idnumber
      *                       ':' separator rather than the keyword-only ',' form
      * @param object $output the page output renderer
      * @param string|null $pageurl URL of the host page, for back-linking
@@ -303,14 +308,16 @@ class text_filter extends \core_filters\text_filter {
         ?string $pageurl
     ): ?string {
         $parsed = self::parse_token_body($body);
+        $pagetitle = self::derive_current_page_name();
+
         if ($parsed['name'] === '') {
             $haskeyword = $parsed['anonymous'] || $parsed['locked'];
             if ($hascolon && !$haskeyword) {
-                // Explicit empty name with no keywords (e.g. "{embeddiscussion:}") —
+                // Explicit empty idnumber with no keywords (e.g. "{embeddiscussion:}") —
                 // preserve the broken token rather than silently changing it.
                 return null;
             }
-            $parsed['name'] = self::derive_current_page_name();
+            $parsed['name'] = self::slugify_thread_idnumber($pagetitle);
             if ($parsed['name'] === '') {
                 return null;
             }
@@ -318,7 +325,7 @@ class text_filter extends \core_filters\text_filter {
         // Resolve the thread server-side so the browser only learns the thread id.
         // anonymous/locked are token-authored settings — never trust them from the client.
         try {
-            $thread = manager::get_or_create_thread($parsed['name'], $this->context, $pageurl);
+            $thread = manager::get_or_create_thread($parsed['name'], $this->context, $pageurl, $pagetitle);
             $thread = manager::sync_settings_from_token($thread, [
                 'anonymous' => $parsed['anonymous'],
                 'locked' => $parsed['locked'],
@@ -364,11 +371,10 @@ class text_filter extends \core_filters\text_filter {
     }
 
     /**
-     * Derive a thread name from the current page title, with the trailing site
-     * name segment stripped and characters that would break the canonical token
-     * removed. Returns '' if no usable page title is available.
+     * Derive a page title from the current page, with the trailing site name
+     * segment stripped. Returns '' if no usable page title is available.
      *
-     * @return string the sanitised page-derived thread name
+     * @return string the page-derived title
      */
     public static function derive_current_page_name(): string {
         global $PAGE, $SITE;
@@ -384,7 +390,30 @@ class text_filter extends \core_filters\text_filter {
             $sitenames[] = (string) ($SITE->shortname ?? '');
         }
 
-        return self::sanitise_thread_name(self::derive_page_name($pagetitle, $sitenames));
+        return self::derive_page_name($pagetitle, $sitenames);
+    }
+
+    /**
+     * Convert a human page title into a stable idnumber slug.
+     *
+     * @param string $pagetitle
+     * @return string
+     */
+    protected static function slugify_thread_idnumber(string $pagetitle): string {
+        $pagetitle = trim($pagetitle);
+        if ($pagetitle === '') {
+            return '';
+        }
+
+        $slug = \core_text::specialtoascii($pagetitle);
+        $slug = \core_text::strtolower((string)$slug);
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+        $slug = trim((string)$slug, '-');
+        if ($slug !== '') {
+            return $slug;
+        }
+
+        return 'thread-' . substr(sha1($pagetitle), 0, 12);
     }
 
     /**

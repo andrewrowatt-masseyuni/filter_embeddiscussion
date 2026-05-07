@@ -68,7 +68,7 @@ class helper {
         return new external_single_structure([
             'id' => new external_value(PARAM_INT, 'Post id'),
             'threadid' => new external_value(PARAM_INT, 'Thread id'),
-            'threadname' => new external_value(PARAM_TEXT, 'Thread name'),
+            'threadname' => new external_value(PARAM_TEXT, 'Thread page title'),
             'content' => new external_value(PARAM_RAW, 'Sanitised HTML content'),
             'deleted' => new external_value(PARAM_BOOL, 'Whether the post is deleted'),
             'edited' => new external_value(PARAM_BOOL, 'Whether the post has been edited'),
@@ -102,7 +102,7 @@ class helper {
             'postcount' => new external_value(PARAM_INT, 'Total number of visible posts'),
             'threads' => new external_multiple_structure(new external_single_structure([
                 'threadid' => new external_value(PARAM_INT, 'Thread id'),
-                'name' => new external_value(PARAM_TEXT, 'Thread name'),
+                'name' => new external_value(PARAM_TEXT, 'Thread page title'),
                 'pageurl' => new external_value(PARAM_RAW, 'Host page URL', VALUE_OPTIONAL),
                 'postcount' => new external_value(PARAM_INT, 'Visible posts in this thread'),
                 'posts' => new external_multiple_structure(self::dashboard_post_structure()),
@@ -119,7 +119,7 @@ class helper {
     public static function thread_structure(): external_single_structure {
         return new external_single_structure([
             'threadid' => new external_value(PARAM_INT, 'Thread id'),
-            'name' => new external_value(PARAM_TEXT, 'Thread name'),
+            'name' => new external_value(PARAM_TEXT, 'Thread idnumber'),
             'anonymous' => new external_value(PARAM_BOOL, 'Anonymous mode enabled'),
             'currentuserisanonymous' => new external_value(
                 PARAM_BOOL,

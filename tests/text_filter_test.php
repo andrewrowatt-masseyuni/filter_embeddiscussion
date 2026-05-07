@@ -73,6 +73,20 @@ final class text_filter_test extends \advanced_testcase {
         $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
     }
 
+    public function test_filter_stores_pagetitle_for_explicit_idnumber(): void {
+        global $PAGE, $SITE;
+        $this->resetAfterTest();
+        $PAGE->set_title('Lesson 2 | Acceptance test site', false);
+        $SITE->fullname = 'Acceptance test site';
+        $SITE->shortname = 'Acceptance test site';
+        $context = \context_system::instance();
+        $filter = new text_filter($context, []);
+        $filter->filter('{embeddiscussion:lesson-2}');
+        $thread = manager::find_thread('lesson-2', $context->id);
+        $this->assertNotNull($thread);
+        $this->assertSame('Lesson 2', (string)$thread->pagetitle);
+    }
+
     public function test_filter_handles_multiple_tokens(): void {
         $this->resetAfterTest();
         $context = \context_system::instance();
@@ -116,8 +130,9 @@ final class text_filter_test extends \advanced_testcase {
         $context = \context_system::instance();
         $filter = new text_filter($context, []);
         $output = $filter->filter('Before {embeddiscussion} after');
-        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $thread = manager::find_thread('course-course-1', $context->id);
         $this->assertNotNull($thread);
+        $this->assertSame('Course: Course 1', (string)$thread->pagetitle);
         $this->assertSame(0, (int)$thread->anonymous);
         $this->assertSame(0, (int)$thread->locked);
         $this->assertStringContainsString('data-region="filter-embeddiscussion"', $output);
@@ -133,8 +148,9 @@ final class text_filter_test extends \advanced_testcase {
         $context = \context_system::instance();
         $filter = new text_filter($context, []);
         $output = $filter->filter('{embeddiscussion,anonymous,locked}');
-        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $thread = manager::find_thread('course-course-1', $context->id);
         $this->assertNotNull($thread);
+        $this->assertSame('Course: Course 1', (string)$thread->pagetitle);
         $this->assertSame(1, (int)$thread->anonymous);
         $this->assertSame(1, (int)$thread->locked);
         $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
@@ -149,8 +165,9 @@ final class text_filter_test extends \advanced_testcase {
         $context = \context_system::instance();
         $filter = new text_filter($context, []);
         $output = $filter->filter('{embeddeddiscussion}');
-        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $thread = manager::find_thread('course-course-1', $context->id);
         $this->assertNotNull($thread);
+        $this->assertSame('Course: Course 1', (string)$thread->pagetitle);
         $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
     }
 
@@ -173,8 +190,9 @@ final class text_filter_test extends \advanced_testcase {
         $context = \context_system::instance();
         $filter = new text_filter($context, []);
         $output = $filter->filter('{embeddiscussion:anon}');
-        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $thread = manager::find_thread('course-course-1', $context->id);
         $this->assertNotNull($thread);
+        $this->assertSame('Course: Course 1', (string)$thread->pagetitle);
         $this->assertSame(1, (int)$thread->anonymous);
         $this->assertSame(0, (int)$thread->locked);
         $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
@@ -189,8 +207,9 @@ final class text_filter_test extends \advanced_testcase {
         $context = \context_system::instance();
         $filter = new text_filter($context, []);
         $output = $filter->filter('{embeddiscussion:locked,anon}');
-        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $thread = manager::find_thread('course-course-1', $context->id);
         $this->assertNotNull($thread);
+        $this->assertSame('Course: Course 1', (string)$thread->pagetitle);
         $this->assertSame(1, (int)$thread->anonymous);
         $this->assertSame(1, (int)$thread->locked);
         $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
