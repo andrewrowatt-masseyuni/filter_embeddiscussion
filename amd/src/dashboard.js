@@ -27,7 +27,7 @@
 import Ajax from 'core/ajax';
 import Templates from 'core/templates';
 import Notification from 'core/notification';
-import {startTicker} from 'filter_embeddiscussion/timeago';
+import {startTicker, tick as tickTimeAgo} from 'filter_embeddiscussion/timeago';
 
 const SEL_ROOT = '[data-region="filter-embeddiscussion-dashboard"]';
 const LAZY_ROOT_MARGIN = '100px 0px';
@@ -55,6 +55,7 @@ const getLazyObserver = () => {
 const render = async(root, data) => {
     const {html, js} = await Templates.renderForPromise('filter_embeddiscussion/dashboard', data);
     await Templates.replaceNodeContents(root, html, js);
+    tickTimeAgo();
 };
 
 const load = (root) => {

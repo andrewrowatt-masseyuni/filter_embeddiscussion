@@ -26,7 +26,7 @@ import Templates from 'core/templates';
 import Notification from 'core/notification';
 import {get_string as getString} from 'core/str';
 import {loadQuill, makeEditor} from 'filter_embeddiscussion/editor';
-import {startTicker, format} from 'filter_embeddiscussion/timeago';
+import {startTicker, tick as tickTimeAgo, format} from 'filter_embeddiscussion/timeago';
 
 const SEL_ROOT = '[data-region="filter-embeddiscussion"]';
 const MAX_VISUAL_INDENT = 3;
@@ -168,6 +168,8 @@ class Discussion {
             const key = this.thread.postcount === 1 ? 'onecomment' : 'comments';
             countEl.textContent = await getString(key, 'filter_embeddiscussion', this.thread.postcount);
         }
+
+        tickTimeAgo();
     }
 
     /**

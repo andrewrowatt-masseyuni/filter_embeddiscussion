@@ -717,11 +717,6 @@ class manager {
             'edited' => (bool)$post->edited,
             'timecreated' => (int)$post->timecreated,
             'timecreatediso' => userdate($post->timecreated, get_string('strftimedatetime', 'langconfig')),
-            'timecreatedrelative' => get_string(
-                'relativetime',
-                'filter_embeddiscussion',
-                format_time(time() - $post->timecreated)
-            ),
             'authorname' => $authorname,
             'authorhandle' => $handle,
             'authorrole' => $rolelabel,

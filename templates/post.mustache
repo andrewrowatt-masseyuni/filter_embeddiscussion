@@ -20,7 +20,6 @@
     * edited (bool)
     * timecreated (int, unix timestamp)
     * timecreatediso (string)
-    * timecreatedrelative (string)
     * authorname (string)
     * authorrole (string, optional)
     * isanonymous (bool)
@@ -44,7 +43,6 @@
         "edited": false,
         "timecreated": 1714608000,
         "timecreatediso": "2024-05-02T00:00:00+00:00",
-        "timecreatedrelative": "2 hours ago",
         "authorname": "Jane Doe",
         "authorrole": "Teacher",
         "isanonymous": false,
@@ -74,7 +72,7 @@
     </div>
     <div class="embeddisc-post-time">
       <span class="embeddisc-post-time-relative" data-region="time-ago" data-timestamp="{{timecreated}}"
-        title="{{timecreatediso}}">{{timecreatedrelative}}</span>
+        title="{{timecreatediso}}">{{#pix}}i/duration, core{{/pix}}</span>
       {{#edited}}<span class="embeddisc-post-edited">{{#str}}edited, filter_embeddiscussion{{/str}}</span>{{/edited}}
     </div>
     {{#deleted}}

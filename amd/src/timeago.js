@@ -114,7 +114,7 @@ export const format = (ageSeconds) => {
 /**
  * Refresh all visible relative-time stamps once.
  */
-const tick = () => {
+export const tick = () => {
     const now = Date.now() / 1000;
     document.querySelectorAll('[data-region="time-ago"][data-timestamp]').forEach(el => {
         const ts = parseInt(el.dataset.timestamp, 10);
