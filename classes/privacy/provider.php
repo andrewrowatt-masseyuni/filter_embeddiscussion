@@ -113,6 +113,12 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
                   JOIN {filter_embeddiscussion_vote} v ON v.postid = p.id
                  WHERE t.contextid = :contextid";
         $userlist->add_from_sql('userid', $sql, ['contextid' => $context->id]);
+
+        $sql = "SELECT h.userid
+                  FROM {filter_embeddiscussion_thread} t
+                  JOIN {filter_embeddiscussion_handle} h ON h.threadid = t.id
+                 WHERE t.contextid = :contextid";
+        $userlist->add_from_sql('userid', $sql, ['contextid' => $context->id]);
     }
 
     /**
@@ -143,7 +149,7 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
                     ];
                 }, array_values($posts));
 
-                $threadtitle = trim((string)($thread->threadname ?? ($thread->pagetitle ?? '')));
+                $threadtitle = trim((string)($thread->threadname ?? ''));
                 if ($threadtitle === '') {
                     $threadtitle = (string)($thread->idnumber ?? '');
                 }

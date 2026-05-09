@@ -63,15 +63,18 @@ class threads extends system_report {
     }
 
     /**
-     * Access check.
-     *
-     * The page calling this report is responsible for the more specific
-     * course-context capability check.
+     * Access check. The report exposes per-course thread metadata, so the
+     * caller must hold filter/embeddiscussion:managethreads in the course
+     * context (or system context for the site-wide listing).
      *
      * @return bool
      */
     protected function can_view(): bool {
-        return isloggedin() && !isguestuser();
+        $courseid = (int)$this->get_parameter('courseid', 0, PARAM_INT);
+        $context = $courseid > 0
+            ? \context_course::instance($courseid)
+            : \context_system::instance();
+        return has_capability('filter/embeddiscussion:managethreads', $context);
     }
 
     /**

@@ -31,21 +31,6 @@ $courseid = optional_param('courseid', 0, PARAM_INT);
 $action = optional_param('action', '', PARAM_ALPHA);
 $threadid = optional_param('threadid', 0, PARAM_INT);
 
-if ($action === 'view' && $threadid) {
-    $thread = $DB->get_record('filter_embeddiscussion_thread', ['id' => $threadid], '*', MUST_EXIST);
-    $context = context::instance_by_id($thread->contextid, IGNORE_MISSING);
-    if ($context) {
-        require_login($thread->courseid ?: SITEID, false);
-        require_capability(
-            'filter/embeddiscussion:managethreads',
-            $thread->courseid ? context_course::instance($thread->courseid) : context_system::instance()
-        );
-        // Best-effort redirect to where this thread lives.
-        $url = $context->get_url();
-        redirect($url);
-    }
-}
-
 if ($courseid) {
     $course = get_course($courseid);
     require_login($course);
@@ -53,6 +38,19 @@ if ($courseid) {
 } else {
     require_login();
     $context = context_system::instance();
+}
+
+if ($action === 'view' && $threadid) {
+    $thread = $DB->get_record('filter_embeddiscussion_thread', ['id' => $threadid], '*', MUST_EXIST);
+    $threadcontext = context::instance_by_id($thread->contextid, IGNORE_MISSING);
+    if ($threadcontext) {
+        require_capability(
+            'filter/embeddiscussion:managethreads',
+            $thread->courseid ? context_course::instance($thread->courseid) : context_system::instance()
+        );
+        // Best-effort redirect to where this thread lives.
+        redirect($threadcontext->get_url());
+    }
 }
 
 require_capability('filter/embeddiscussion:managethreads', $context);

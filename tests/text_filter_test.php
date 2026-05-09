@@ -65,13 +65,13 @@ final class text_filter_test extends \advanced_testcase {
     }
 
     /**
-     * Return the persisted thread name across schema variants.
+     * Return the persisted thread name.
      *
      * @param \stdClass $thread
      * @return string
      */
     protected function get_thread_name(\stdClass $thread): string {
-        return (string)($thread->threadname ?? ($thread->pagetitle ?? ''));
+        return (string)($thread->threadname ?? '');
     }
 
     public function test_filter_no_token_passes_through(): void {

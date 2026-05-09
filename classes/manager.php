@@ -27,25 +27,99 @@ namespace filter_embeddiscussion;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class manager {
-    /** @var bool|null cache of whether the threadname column exists. */
-    protected static $threadnamecol = null;
+    /** @var array<int,\stdClass> userid => user record (request-scoped). */
+    protected static $userscache = [];
+
+    /** @var array<string,array<int,\stdClass>> "ctx:N" => [userid => roles]. */
+    protected static $rolescache = [];
+
+    /** @var array<int,array{up:int,down:int}> postid => counts. */
+    protected static $votecountscache = [];
+
+    /** @var array<int,int> postid => the viewing user's vote (-1/0/1). */
+    protected static $myvotescache = [];
 
     /**
-     * Whether the thread table has the threadname column (new schema).
+     * Prefetch the user records, role assignments, and vote totals needed to
+     * render a list of posts. Populates the request-scoped caches consumed by
+     * build_post_view, user_is_student, user_role_label and vote_summary so
+     * each rendering pass costs O(1) DB queries instead of O(posts).
      *
-     * @return bool
+     * @param \stdClass[] $posts
+     * @param \context $context
+     * @param int $vieweruserid the user we are rendering for
      */
-    protected static function has_threadname_column(): bool {
+    protected static function prefetch_post_data(array $posts, \context $context, int $vieweruserid): void {
         global $DB;
 
-        if (self::$threadnamecol === null) {
-            $manager = $DB->get_manager();
-            $table = new \xmldb_table('filter_embeddiscussion_thread');
-            $field = new \xmldb_field('threadname');
-            self::$threadnamecol = $manager->field_exists($table, $field);
+        if (empty($posts)) {
+            return;
         }
 
-        return self::$threadnamecol;
+        $userids = [];
+        $postids = [];
+        foreach ($posts as $p) {
+            $userids[(int)$p->userid] = true;
+            $postids[(int)$p->id] = true;
+        }
+        $userids = array_keys($userids);
+        $postids = array_keys($postids);
+
+        // Users — single IN query, populated into the user cache.
+        $missinguserids = array_values(array_diff($userids, array_keys(self::$userscache)));
+        if ($missinguserids) {
+            $users = $DB->get_records_list('user', 'id', $missinguserids);
+            foreach ($users as $u) {
+                self::$userscache[(int)$u->id] = $u;
+            }
+        }
+
+        // Roles per user in this context.
+        $ctxkey = 'ctx:' . $context->id;
+        if (!isset(self::$rolescache[$ctxkey])) {
+            self::$rolescache[$ctxkey] = [];
+        }
+        foreach ($userids as $uid) {
+            if (!array_key_exists($uid, self::$rolescache[$ctxkey])) {
+                self::$rolescache[$ctxkey][$uid] = get_user_roles($context, $uid, true);
+            }
+        }
+
+        // Vote totals — one GROUP BY query for up/down per post.
+        [$insql, $params] = $DB->get_in_or_equal($postids, SQL_PARAMS_NAMED, 'p');
+        $rows = $DB->get_records_sql(
+            "SELECT postid, vote, COUNT(1) AS c
+               FROM {filter_embeddiscussion_vote}
+              WHERE postid $insql
+           GROUP BY postid, vote",
+            $params
+        );
+        foreach ($postids as $pid) {
+            self::$votecountscache[$pid] = ['up' => 0, 'down' => 0];
+        }
+        foreach ($rows as $row) {
+            $pid = (int)$row->postid;
+            if ((int)$row->vote === 1) {
+                self::$votecountscache[$pid]['up'] = (int)$row->c;
+            } else if ((int)$row->vote === -1) {
+                self::$votecountscache[$pid]['down'] = (int)$row->c;
+            }
+        }
+
+        // The viewer's own vote per post.
+        $params['userid'] = $vieweruserid;
+        $myrows = $DB->get_records_sql(
+            "SELECT postid, vote
+               FROM {filter_embeddiscussion_vote}
+              WHERE postid $insql AND userid = :userid",
+            $params
+        );
+        foreach ($postids as $pid) {
+            self::$myvotescache[$pid] = 0;
+        }
+        foreach ($myrows as $row) {
+            self::$myvotescache[(int)$row->postid] = (int)$row->vote;
+        }
     }
 
     /**
@@ -87,13 +161,12 @@ class manager {
             throw new \invalid_parameter_exception('Thread idnumber cannot be empty');
         }
         $threadname = trim((string)$threadname);
-        $threadnamefield = self::has_threadname_column() ? 'threadname' : 'pagetitle';
 
         $existing = self::find_thread($idnumber, $context->id);
         if ($existing) {
             $changed = false;
-            if ($threadname !== '' && (string)($existing->{$threadnamefield} ?? '') !== $threadname) {
-                $existing->{$threadnamefield} = $threadname;
+            if ($threadname !== '' && (string)($existing->threadname ?? '') !== $threadname) {
+                $existing->threadname = $threadname;
                 $changed = true;
             }
             if ($changed) {
@@ -115,7 +188,7 @@ class manager {
 
         $record = (object)[
             'idnumber' => $idnumber,
-            $threadnamefield => ($threadname !== '') ? $threadname : $idnumber,
+            'threadname' => ($threadname !== '') ? $threadname : $idnumber,
             'namehash' => sha1($idnumber),
             'contextid' => $context->id,
             'courseid' => $courseid,
@@ -396,7 +469,15 @@ class manager {
      * @return array [int up, int down, int my]
      */
     public static function vote_summary(int $postid, int $userid): array {
-        global $DB;
+        global $DB, $USER;
+
+        if (isset(self::$votecountscache[$postid]) && (int)$USER->id === $userid) {
+            return [
+                'up' => self::$votecountscache[$postid]['up'],
+                'down' => self::$votecountscache[$postid]['down'],
+                'my' => self::$myvotescache[$postid] ?? 0,
+            ];
+        }
         $up = (int)$DB->count_records('filter_embeddiscussion_vote', ['postid' => $postid, 'vote' => 1]);
         $down = (int)$DB->count_records('filter_embeddiscussion_vote', ['postid' => $postid, 'vote' => -1]);
         $myrec = $DB->get_record('filter_embeddiscussion_vote', ['postid' => $postid, 'userid' => $userid]);
@@ -413,7 +494,7 @@ class manager {
      */
     public static function user_is_student(\context $context, int $userid): bool {
         // Use only directly assigned roles; archetype 'student' or no role at all means treat as student.
-        $roles = get_user_roles($context, $userid, true);
+        $roles = self::user_roles_cached($context, $userid);
         if (empty($roles)) {
             return true;
         }
@@ -438,7 +519,7 @@ class manager {
      * @return string empty if student/no special role
      */
     public static function user_role_label(\context $context, int $userid): string {
-        $roles = get_user_roles($context, $userid, true);
+        $roles = self::user_roles_cached($context, $userid);
         foreach ($roles as $r) {
             $archetype = self::role_archetype((int)$r->roleid);
             if ($archetype !== 'student' && $archetype !== '' && $archetype !== 'guest') {
@@ -446,6 +527,24 @@ class manager {
             }
         }
         return '';
+    }
+
+    /**
+     * Read role assignments via the request-scoped cache populated by
+     * prefetch_post_data, falling back to a direct lookup on cache miss.
+     *
+     * @param \context $context
+     * @param int $userid
+     * @return array
+     */
+    protected static function user_roles_cached(\context $context, int $userid): array {
+        $ctxkey = 'ctx:' . $context->id;
+        if (isset(self::$rolescache[$ctxkey]) && array_key_exists($userid, self::$rolescache[$ctxkey])) {
+            return self::$rolescache[$ctxkey][$userid];
+        }
+        $roles = get_user_roles($context, $userid, true);
+        self::$rolescache[$ctxkey][$userid] = $roles;
+        return $roles;
     }
 
     /**
@@ -479,6 +578,8 @@ class manager {
             ['threadid' => $thread->id],
             'timecreated ASC'
         );
+
+        self::prefetch_post_data($posts, $context, (int)$USER->id);
 
         $canviewfullnames = has_capability('moodle/site:viewfullnames', $context);
         $canmanageposts = has_capability('filter/embeddiscussion:manageposts', $context);
@@ -551,7 +652,8 @@ class manager {
     ): array {
         global $USER, $DB;
 
-        $author = $DB->get_record('user', ['id' => $post->userid]);
+        $author = self::$userscache[(int)$post->userid]
+            ?? $DB->get_record('user', ['id' => $post->userid]);
 
         $isanon = false;
         $handle = '';
@@ -562,8 +664,13 @@ class manager {
         $isown = $author && ((int)$author->id === (int)$USER->id);
 
         if ($post->deleted) {
-            $avatar = '<img class="userpicture" alt="" src="' .
-                s($renderer->image_url('u/f1')->out(false)) . '" width="48" height="48">';
+            $avatar = \html_writer::empty_tag('img', [
+                'class' => 'userpicture',
+                'alt' => '',
+                'src' => $renderer->image_url('u/f1')->out(false),
+                'width' => 48,
+                'height' => 48,
+            ]);
         } else if ($author) {
             $isstudent = self::user_is_student($context, (int)$author->id);
             $rolelabel = self::user_role_label($context, (int)$author->id);
@@ -579,9 +686,13 @@ class manager {
                 $avatar = $renderer->user_picture($author, ['size' => 64, 'link' => false]);
             } else {
                 $authorname = $handle;
-                $avatar = '<img class="userpicture" alt="" src="' .
-                    s(identicon::data_uri('embeddisc:' . $thread->id . ':' . $author->id)) .
-                    '" width="48" height="48">';
+                $avatar = \html_writer::empty_tag('img', [
+                    'class' => 'userpicture',
+                    'alt' => '',
+                    'src' => identicon::data_uri('embeddisc:' . $thread->id . ':' . $author->id),
+                    'width' => 48,
+                    'height' => 48,
+                ]);
             }
         }
 
@@ -669,12 +780,11 @@ class manager {
         $renderer = $PAGE->get_renderer('core');
 
         [$insql, $inparams] = $DB->get_in_or_equal($contextids, SQL_PARAMS_NAMED, 'ctx');
-        $orderfield = self::has_threadname_column() ? 'threadname' : 'pagetitle';
         $threads = $DB->get_records_select(
             'filter_embeddiscussion_thread',
             "contextid $insql",
             $inparams,
-            $orderfield . ' ASC, idnumber ASC'
+            'threadname ASC, idnumber ASC'
         );
 
         $threadsout = [];
@@ -712,7 +822,7 @@ class manager {
         int $lastaccess,
         \renderer_base $renderer
     ): ?array {
-        global $DB;
+        global $DB, $USER;
 
         $posts = $DB->get_records_select(
             'filter_embeddiscussion_post',
@@ -725,6 +835,7 @@ class manager {
         }
 
         $context = \context::instance_by_id((int)$thread->contextid);
+        self::prefetch_post_data($posts, $context, (int)$USER->id);
         $canviewfullnames = has_capability('moodle/site:viewfullnames', $context);
 
         $postsout = [];
@@ -758,10 +869,6 @@ class manager {
      */
     protected static function thread_display_name(\stdClass $thread): string {
         $threadname = trim((string)($thread->threadname ?? ''));
-        if ($threadname !== '') {
-            return $threadname;
-        }
-        $threadname = trim((string)($thread->pagetitle ?? ''));
         if ($threadname !== '') {
             return $threadname;
         }

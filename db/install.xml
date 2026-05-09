@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="filter/embeddiscussion/db" VERSION="2026050800" COMMENT="filter_embeddiscussion database tables"
+<XMLDB PATH="filter/embeddiscussion/db" VERSION="2026050900" COMMENT="filter_embeddiscussion database tables"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -45,6 +45,7 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="thread_parent_idx" UNIQUE="false" FIELDS="threadid, parentid"/>
+        <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="filter_embeddiscussion_vote" COMMENT="Up/down votes on posts.">
