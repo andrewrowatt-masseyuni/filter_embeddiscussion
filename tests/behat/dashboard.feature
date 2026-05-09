@@ -24,7 +24,7 @@ Feature: Embedded discussion dashboard
     And the following "mod_book > chapters" exist:
       | book               | title              | content                            |
       | Visible chat book  | Visible chapter    | {discussion:Visible chat}          |
-      | Activity feed book | Dashboard chapter  | {discussion:latestposts}           |
+      | Activity feed book | Dashboard chapter  | {discussiondashboard}              |
     # Backdate the student's last visit so posts created next pass the cutoff
     # but the dashboard page-load doesn't bump the timestamp forward (the
     # debounce is 60 seconds in user_accesstime_log).

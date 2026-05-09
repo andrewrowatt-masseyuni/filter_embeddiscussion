@@ -19,8 +19,9 @@ namespace filter_embeddiscussion;
 /**
  * embeddiscussion filter
  *
- * Replaces tokens of the form {discussion[:Thread name]},
- * {anondiscussion[:Thread name]} and {anonymousdiscussion[:Thread name]}
+ * Replaces tokens of the form {discussiondashboard},
+ * {discussion[:Thread name]}, {anondiscussion[:Thread name]}
+ * and {anonymousdiscussion[:Thread name]}
  * with a skeleton container that the JS module populates asynchronously.
  *
  * In Book chapter pages, the thread name is optional and defaults to the
@@ -38,8 +39,8 @@ namespace filter_embeddiscussion;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class text_filter extends \core_filters\text_filter {
-    /** Pattern matches {discussion}, {discussion:...}, {anondiscussion:...}, {anonymousdiscussion:...}. */
-    const PATTERN = '/\{(discussion|anondiscussion|anonymousdiscussion)(?::([^}]*))?\}/i';
+    /** Pattern matches {discussiondashboard}, {discussion}, {discussion:...}, {anondiscussion:...}, {anonymousdiscussion:...}. */
+    const PATTERN = '/\{discussiondashboard\}|\{(discussion|anondiscussion|anonymousdiscussion)(?::([^}]*))?\}/i';
 
     /** Pattern matches the legacy [[filter_disqus]] and {comments} tokens. */
     const LEGACY_PATTERN = '/\[\[filter_disqus\]\]|\{comments\}/i';
@@ -83,11 +84,7 @@ class text_filter extends \core_filters\text_filter {
         $self = $this;
 
         $text = preg_replace_callback(self::PATTERN, function ($matches) use ($self, $OUTPUT, &$dashboardused) {
-            $tokentype = strtolower($matches[1] ?? 'discussion');
-            $body = self::sanitise_thread_name($matches[2] ?? '');
-            $anonymous = ($tokentype === 'anondiscussion' || $tokentype === 'anonymousdiscussion');
-
-            if ($tokentype === 'discussion' && self::is_course_feed_token($body)) {
+            if (strcasecmp($matches[0], '{discussiondashboard}') === 0) {
                 $rendered = $self->render_dashboard_placeholder($OUTPUT);
                 if ($rendered !== null) {
                     $dashboardused = true;
@@ -95,6 +92,10 @@ class text_filter extends \core_filters\text_filter {
                 }
                 return $matches[0];
             }
+
+            $tokentype = strtolower($matches[1] ?? 'discussion');
+            $body = self::sanitise_thread_name($matches[2] ?? '');
+            $anonymous = ($tokentype === 'anondiscussion' || $tokentype === 'anonymousdiscussion');
 
             $rendered = $self->render_thread_placeholder($body, $anonymous, $OUTPUT);
             return $rendered ?? $matches[0];
@@ -186,8 +187,8 @@ class text_filter extends \core_filters\text_filter {
     }
 
     /**
-     * Render a course-feed placeholder ({discussion:dashboard} or
-     * {discussion:latestposts}), or null if no enclosing course can be
+     * Render a course-feed placeholder ({discussiondashboard}), or null if
+     * no enclosing course can be
      * determined and the token should be left untouched.
      *
      * @param object $output the page output renderer
@@ -273,17 +274,6 @@ class text_filter extends \core_filters\text_filter {
             return (int)$PAGE->course->id;
         }
         return 0;
-    }
-
-    /**
-     * True when the explicit token body is a recognised course-feed alias.
-     *
-     * @param string $body raw token body after the leading ':'
-     * @return bool
-     */
-    protected static function is_course_feed_token(string $body): bool {
-        $value = trim($body);
-        return strcasecmp($value, 'dashboard') === 0 || strcasecmp($value, 'latestposts') === 0;
     }
 
     /**
