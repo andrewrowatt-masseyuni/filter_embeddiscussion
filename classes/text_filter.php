@@ -250,8 +250,8 @@ class text_filter extends \core_filters\text_filter {
 
         [, , $cm] = get_context_info_array($this->context->id);
 
-        if (($cm->modname ?? '') === 'book' && $PAGE->url->get_path() === '/mod/book/view.php') {
-            return self::derive_current_page_name();
+        if (($cm->modname ?? '') === 'book' && $PAGE->url->get_path() === '/mod/book/view.php' && !empty($PAGE->title)) {
+            return $PAGE->title;
         }
 
         return 'context-' . (int)$this->context->id;
@@ -274,64 +274,6 @@ class text_filter extends \core_filters\text_filter {
             return (int)$PAGE->course->id;
         }
         return 0;
-    }
-
-    /**
-     * Derive a page title from the current page, with the trailing site name
-     * segment stripped. Returns '' if no usable page title is available.
-     *
-     * @return string the page-derived title
-     */
-    public static function derive_current_page_name(): string {
-        global $PAGE, $SITE;
-
-        $pagetitle = '';
-        $sitenames = [];
-
-        if (isset($PAGE) && is_object($PAGE)) {
-            $pagetitle = (string) ($PAGE->title ?? '');
-        }
-        if (isset($SITE) && is_object($SITE)) {
-            $sitenames[] = (string) ($SITE->fullname ?? '');
-            $sitenames[] = (string) ($SITE->shortname ?? '');
-        }
-
-        return self::derive_page_name($pagetitle, $sitenames);
-    }
-
-    /**
-     * Strip the trailing site fullname or shortname segment from a page title.
-     *
-     * Moodle pages are titled "<page name> | <site name>" (see
-     * moodle_page::TITLE_SEPARATOR), so this removes the trailing
-     * " | <site fullname>" or " | <site shortname>" segment if present and
-     * returns the leading portion. If neither matches, the trimmed title is
-     * returned unchanged.
-     *
-     * @param string $pagetitle the raw $PAGE->title value
-     * @param array $sitenames candidate site name strings (fullname, shortname)
-     * @return string the page name with any site name suffix removed
-     */
-    public static function derive_page_name(string $pagetitle, array $sitenames): string {
-        $pagetitle = trim($pagetitle);
-        if ($pagetitle === '') {
-            return '';
-        }
-
-        $separator = ' | ';
-        foreach ($sitenames as $name) {
-            $name = trim((string) $name);
-            if ($name === '') {
-                continue;
-            }
-            $suffix = $separator . $name;
-            $suffixlen = strlen($suffix);
-            if (strlen($pagetitle) > $suffixlen && substr($pagetitle, -$suffixlen) === $suffix) {
-                return trim(substr($pagetitle, 0, -$suffixlen));
-            }
-        }
-
-        return $pagetitle;
     }
 
     /**

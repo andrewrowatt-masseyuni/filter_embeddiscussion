@@ -289,68 +289,6 @@ final class text_filter_test extends \advanced_testcase {
         $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
     }
 
-    /**
-     * Verify that the trailing site name is stripped from a page title.
-     *
-     * @dataProvider derive_page_name_provider
-     * @param string $pagetitle the simulated $PAGE->title value
-     * @param array $sitenames candidate site name strings (fullname, shortname)
-     * @param string $expected the expected derived page name
-     */
-    public function test_derive_page_name(string $pagetitle, array $sitenames, string $expected): void {
-        $this->assertSame($expected, text_filter::derive_page_name($pagetitle, $sitenames));
-    }
-
-    /**
-     * Cases for derive_page_name covering site-suffix stripping behaviour.
-     *
-     * @return array
-     */
-    public static function derive_page_name_provider(): array {
-        return [
-            'fullname suffix stripped' => [
-                'Celebrating Cultures | Interesting cities | Mount Orange',
-                ['Mount Orange', 'mountorange'],
-                'Celebrating Cultures | Interesting cities',
-            ],
-            'shortname suffix stripped when fullname does not match' => [
-                'Celebrating Cultures | Interesting cities | mountorange',
-                ['Mount Orange', 'mountorange'],
-                'Celebrating Cultures | Interesting cities',
-            ],
-            'no separator means no strip' => [
-                'Celebrating Cultures',
-                ['Mount Orange'],
-                'Celebrating Cultures',
-            ],
-            'no match keeps title as-is' => [
-                'Celebrating Cultures | Some Other Site',
-                ['Mount Orange', 'mountorange'],
-                'Celebrating Cultures | Some Other Site',
-            ],
-            'empty title returns empty' => [
-                '',
-                ['Mount Orange'],
-                '',
-            ],
-            'whitespace-only title returns empty' => [
-                '   ',
-                ['Mount Orange'],
-                '',
-            ],
-            'empty site names returns trimmed title' => [
-                '  Just a page  ',
-                ['', '   '],
-                'Just a page',
-            ],
-            'trailing space around separator handled by trim' => [
-                'Page name | Mount Orange   ',
-                ['Mount Orange'],
-                'Page name',
-            ],
-        ];
-    }
-
     public function test_convert_legacy_tokens_basic_disqus(): void {
         $this->resetAfterTest();
         $this->configure_legacy_token_handling(true, false);
