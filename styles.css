@@ -219,21 +219,7 @@
     gap: 0.75rem;
     margin: 1rem 0;
 }
-.embeddisc-post[data-indent="1"] {
-    /*
-    margin-left: 1.5rem;
-    */
-}
-.embeddisc-post[data-indent="2"] {
-    /*
-    margin-left: 3rem;
-    */
-}
-.embeddisc-post[data-indent="3"] {
-    /*
-    margin-left: 4.5rem;
-    */
-}
+
 .embeddisc .embeddisc-post-avatar {
     flex: 0 0 auto;
     width: 40px;
@@ -265,11 +251,7 @@
     font-weight: 400;
     text-decoration: none;
 }
-.embeddisc-post-author:hover {
-    /*
-    text-decoration: underline;
-    */
-}
+
 .embeddisc-post-role {
     font-size: 0.8rem;
     color: #666;
@@ -282,12 +264,7 @@
     color: #888;
     margin: 0.1rem 0 0.5rem;
 }
-.embeddisc-post-time-relative {
-    /*
-    cursor: help;
-    border-bottom: 1px dotted #aaa;
-    */
-}
+
 .embeddisc-post-edited {
     font-size: 0.6rem;
     font-weight: 300;
