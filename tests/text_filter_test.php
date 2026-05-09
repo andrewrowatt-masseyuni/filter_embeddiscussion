@@ -160,34 +160,54 @@ final class text_filter_test extends \advanced_testcase {
     }
 
     public function test_filter_defaults_thread_name_to_page_name_in_book_context(): void {
-        global $PAGE, $SITE;
+        global $PAGE;
         $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        $book = $this->getDataGenerator()->create_module('book', [
+            'course' => $course->id,
+            'name' => 'Book A',
+        ]);
+        $context = \context_module::instance($book->cmid);
+
+        $PAGE->set_course($course);
+        $PAGE->set_context($context);
+        $PAGE->set_url(new \moodle_url('/mod/book/view.php', ['id' => $book->cmid]));
         $PAGE->set_title('Course: Course 1', false);
-        $SITE->fullname = 'Acceptance test site';
-        $SITE->shortname = 'Acceptance test site';
-        $context = \context_system::instance();
-        $filter = $this->create_book_filter($context);
+
+        $filter = new text_filter($context, []);
         $output = $filter->filter('Before {discussion} after');
-        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $threadname = 'context-' . (int)$context->id;
+        $thread = manager::find_thread($threadname, $context->id);
         $this->assertNotNull($thread);
-        $this->assertSame('Course: Course 1', $this->get_thread_name($thread));
+        $this->assertSame($threadname, $this->get_thread_name($thread));
         $this->assertSame(0, (int)$thread->anonymous);
         $this->assertStringContainsString('data-region="filter-embeddiscussion"', $output);
         $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
     }
 
     public function test_filter_defaults_anonymous_thread_name_to_page_name_in_book_context(): void {
-        global $PAGE, $SITE;
+        global $PAGE;
         $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        $book = $this->getDataGenerator()->create_module('book', [
+            'course' => $course->id,
+            'name' => 'Book A',
+        ]);
+        $context = \context_module::instance($book->cmid);
+
+        $PAGE->set_course($course);
+        $PAGE->set_context($context);
+        $PAGE->set_url(new \moodle_url('/mod/book/view.php', ['id' => $book->cmid]));
         $PAGE->set_title('Course: Course 1', false);
-        $SITE->fullname = 'Acceptance test site';
-        $SITE->shortname = 'Acceptance test site';
-        $context = \context_system::instance();
-        $filter = $this->create_book_filter($context);
+
+        $filter = new text_filter($context, []);
         $output = $filter->filter('{anondiscussion}');
-        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $threadname = 'context-' . (int)$context->id;
+        $thread = manager::find_thread($threadname, $context->id);
         $this->assertNotNull($thread);
-        $this->assertSame('Course: Course 1', $this->get_thread_name($thread));
+        $this->assertSame($threadname, $this->get_thread_name($thread));
         $this->assertSame(1, (int)$thread->anonymous);
         $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
     }
@@ -195,11 +215,29 @@ final class text_filter_test extends \advanced_testcase {
     public function test_filter_leaves_nameless_token_when_page_title_unavailable_in_book_context(): void {
         global $PAGE;
         $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        $book = $this->getDataGenerator()->create_module('book', [
+            'course' => $course->id,
+            'name' => 'Book A',
+        ]);
+        $context = \context_module::instance($book->cmid);
+
+        $PAGE->set_course($course);
+        $PAGE->set_context($context);
+        $PAGE->set_url(new \moodle_url('/mod/book/view.php', ['id' => $book->cmid]));
         $PAGE->set_title('', false);
-        $context = \context_system::instance();
-        $filter = $this->create_book_filter($context);
+
+        $filter = new text_filter($context, []);
         $input = '{discussion}';
-        $this->assertSame($input, $filter->filter($input));
+        $output = $filter->filter($input);
+        $threadname = 'context-' . (int)$context->id;
+        $thread = manager::find_thread($threadname, $context->id);
+
+        $this->assertNotNull($thread);
+        $this->assertSame($threadname, $this->get_thread_name($thread));
+        $this->assertStringContainsString('data-region="filter-embeddiscussion"', $output);
+        $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
     }
 
     public function test_filter_defaults_nameless_token_to_context_key_outside_book_for_non_editor(): void {
@@ -370,32 +408,52 @@ final class text_filter_test extends \advanced_testcase {
     }
 
     public function test_filter_renders_legacy_disqus_token(): void {
-        global $PAGE, $SITE;
+        global $PAGE;
         $this->resetAfterTest();
         $this->configure_legacy_token_handling(true, false);
+
+        $course = $this->getDataGenerator()->create_course();
+        $book = $this->getDataGenerator()->create_module('book', [
+            'course' => $course->id,
+            'name' => 'Book A',
+        ]);
+        $context = \context_module::instance($book->cmid);
+
+        $PAGE->set_course($course);
+        $PAGE->set_context($context);
+        $PAGE->set_url(new \moodle_url('/mod/book/view.php', ['id' => $book->cmid]));
         $PAGE->set_title('Course: Course 1', false);
-        $SITE->fullname = 'Acceptance test site';
-        $SITE->shortname = 'Acceptance test site';
-        $context = \context_system::instance();
-        $filter = $this->create_book_filter($context);
+
+        $filter = new text_filter($context, []);
         $output = $filter->filter('Before [[filter_disqus]] after');
-        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $threadname = 'context-' . (int)$context->id;
+        $thread = manager::find_thread($threadname, $context->id);
         $this->assertNotNull($thread);
         $this->assertStringContainsString('data-region="filter-embeddiscussion"', $output);
         $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
     }
 
     public function test_filter_renders_legacy_comments_token(): void {
-        global $PAGE, $SITE;
+        global $PAGE;
         $this->resetAfterTest();
         $this->configure_legacy_token_handling(false, true);
+
+        $course = $this->getDataGenerator()->create_course();
+        $book = $this->getDataGenerator()->create_module('book', [
+            'course' => $course->id,
+            'name' => 'Book A',
+        ]);
+        $context = \context_module::instance($book->cmid);
+
+        $PAGE->set_course($course);
+        $PAGE->set_context($context);
+        $PAGE->set_url(new \moodle_url('/mod/book/view.php', ['id' => $book->cmid]));
         $PAGE->set_title('Course: Course 1', false);
-        $SITE->fullname = 'Acceptance test site';
-        $SITE->shortname = 'Acceptance test site';
-        $context = \context_system::instance();
-        $filter = $this->create_book_filter($context);
+
+        $filter = new text_filter($context, []);
         $output = $filter->filter('{comments}');
-        $thread = manager::find_thread('Course: Course 1', $context->id);
+        $threadname = 'context-' . (int)$context->id;
+        $thread = manager::find_thread($threadname, $context->id);
         $this->assertNotNull($thread);
         $this->assertStringContainsString('data-threadid="' . (int)$thread->id . '"', $output);
     }
