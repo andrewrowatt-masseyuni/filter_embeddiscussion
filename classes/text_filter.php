@@ -250,7 +250,6 @@ class text_filter extends \core_filters\text_filter {
 
         [, , $cm] = get_context_info_array($this->context->id);
 
-
         if (($cm->modname ?? '') === 'book' && $PAGE->url->get_path() === '/mod/book/view.php') {
             return self::derive_current_page_name();
         }
